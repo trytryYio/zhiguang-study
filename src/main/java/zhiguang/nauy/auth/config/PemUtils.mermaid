@@ -1,0 +1,10 @@
+graph LR
+    A[用户登录] --> B[获取 Access + Refresh Token]
+    B --> C[使用 Access Token 访问 API]
+    C --> D{Access Token 是否过期?}
+    D -->|未过期| C
+    D -->|已过期| E[使用 Refresh Token 刷新]
+    E --> F{Refresh Token 是否有效?}
+    F -->|有效 Redis中存在| G[签发新的双令牌]
+    G --> C
+    F -->|无效 已撤销/过期| H[强制重新登录]
