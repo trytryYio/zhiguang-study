@@ -5,12 +5,9 @@ import java.util.Date;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import io.netty.util.internal.ObjectUtil;
 import jakarta.annotation.Resource;
 import jodd.util.StringUtil;
-import org.springframework.beans.BeanUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import zhiguang.nauy.exception.ErrorCode;
@@ -129,7 +126,31 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .update();
     }
 
+    @Override
+    @Transactional
+    public User update(User user) {
+        User existsUser = this.getById(user.getId());
+        ThrowUtils.throwIf(existsUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        boolean updated = this.lambdaUpdate()
+                .eq(User::getId, user.getId())
+                .set(user.getPhone() != null, User::getPhone, user.getPhone())
+                .set(user.getEmail() != null, User::getEmail, user.getEmail())
+                .set(user.getPasswordHash() != null, User::getPasswordHash, user.getPasswordHash())
+                .set(user.getNickname() != null, User::getNickname, user.getNickname())
+                .set(user.getAvatar() != null, User::getAvatar, user.getAvatar())
+                .set(user.getBio() != null, User::getBio, user.getBio())
+                .set(user.getZgId() != null, User::getZgId, user.getZgId())
+                .set(user.getGender() != null, User::getGender, user.getGender())
+                .set(user.getBirthday() != null, User::getBirthday, user.getBirthday())
+                .set(user.getSchool() != null, User::getSchool, user.getSchool())
+                .set(user.getTagsJson() != null, User::getTagsJson, user.getTagsJson())
+                .set(User::getUpdatedAt, new Date())
+                .update();
 
+        ThrowUtils.throwIf(!updated, ErrorCode.NOT_FOUND_ERROR, "更新失败");
+
+        return this.getById(user.getId());
+    }
 }
 
 

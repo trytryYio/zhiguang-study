@@ -12,5 +12,21 @@ import zhiguang.nauy.profile.dto.ProfileResponse;
  * @Version: 1.0     // 版本
  */
 public interface ProfileService {
+    /**
+     * 更新用户资料
+     * @param userId
+     * @param request
+     * @return
+     */
     ProfileResponse updateProfile(long userId, ProfilePatchRequest request);
+
+    /**
+     * 更新用户头像
+     * @param userId
+     * @param uploadAvatar
+     * @return
+     */
+
+    ProfileResponse updateAvatar(long userId, String uploadAvatar);
+
 }

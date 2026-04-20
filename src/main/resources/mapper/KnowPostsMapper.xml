@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="zhiguang.nauy.knowpost.mapper.KnowPostsMapper">
+
+    <resultMap id="BaseResultMap" type="zhiguang.nauy.knowpost.domain.KnowPosts">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="tagId" column="tag_id" jdbcType="BIGINT"/>
+            <result property="tags" column="tags" jdbcType="OTHER"/>
+            <result property="title" column="title" jdbcType="VARCHAR"/>
+            <result property="description" column="description" jdbcType="VARCHAR"/>
+            <result property="contentUrl" column="content_url" jdbcType="VARCHAR"/>
+            <result property="contentObjectKey" column="content_object_key" jdbcType="VARCHAR"/>
+            <result property="contentEtag" column="content_etag" jdbcType="VARCHAR"/>
+            <result property="contentSize" column="content_size" jdbcType="BIGINT"/>
+            <result property="contentSha256" column="content_sha256" jdbcType="CHAR"/>
+            <result property="creatorId" column="creator_id" jdbcType="BIGINT"/>
+            <result property="isTop" column="is_top" jdbcType="TINYINT"/>
+            <result property="type" column="type" jdbcType="VARCHAR"/>
+            <result property="visible" column="visible" jdbcType="VARCHAR"/>
+            <result property="imgUrls" column="img_urls" jdbcType="OTHER"/>
+            <result property="videoUrl" column="video_url" jdbcType="VARCHAR"/>
+            <result property="status" column="status" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="publishTime" column="publish_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,tag_id,tags,
+        title,description,content_url,
+        content_object_key,content_etag,content_size,
+        content_sha256,creator_id,is_top,
+        type,visible,img_urls,
+        video_url,status,create_time,
+        update_time,publish_time
+    </sql>
+</mapper>

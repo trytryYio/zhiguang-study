@@ -1,5 +1,6 @@
 package zhiguang.nauy.user.service;
 
+import org.springframework.transaction.annotation.Transactional;
 import zhiguang.nauy.user.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -72,5 +73,12 @@ public interface UserService extends IService<User> {
      */
     void updateUser(User user);
 
+    /**
+     * 更新用户信息并且返回 User
+     * @param user
+     * @return
+     */
 
+    @Transactional
+    User update(User user);
 }

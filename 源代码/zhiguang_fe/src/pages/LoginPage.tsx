@@ -58,14 +58,16 @@ const LoginPage = () => {
         }
         setError(null);
         setSendingCode(true);
-        try {
-            const response = await authService.sendCode({
-                scene: "LOGIN",
-                identifierType: "PHONE",
-                identifier
-            });
-            setCountdown(Math.max(1, response.expireSeconds ?? 300));
-        } catch (err) {
+            try {
+                const response = await authService.sendCode({
+                    scene: "LOGIN",
+                    identifierType: "PHONE",
+                    identifier
+                });
+                const expireSeconds = Number(response.expireSeconds);
+                const countdownSeconds = isNaN(expireSeconds) ? 300 : expireSeconds;
+                setCountdown(Math.max(1, countdownSeconds));
+            } catch (err) {
             const info = err instanceof Error ? err.message : "验证码发送失败";
             setError(info);
         } finally {

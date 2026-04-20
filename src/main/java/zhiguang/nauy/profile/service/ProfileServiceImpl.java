@@ -4,6 +4,7 @@ import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import jakarta.annotation.Resource;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import zhiguang.nauy.exception.BusinessException;
@@ -28,6 +29,13 @@ public class ProfileServiceImpl implements ProfileService{
     private UserService userService;
     @Resource
     private UserMapper userMapper;
+
+    /**
+     * 更新用户资料
+     * @param userId
+     * @param request
+     * @return
+     */
     @Transactional
     @Override
     public ProfileResponse updateProfile(long userId, ProfilePatchRequest request) {
@@ -68,7 +76,25 @@ public class ProfileServiceImpl implements ProfileService{
         return user.convertToProfileResponse();
     }
 
-
+    /**
+     * 更新用户头像
+     * @param userId
+     * @param uploadAvatar
+     * @return
+     */
+    @Override
+    public ProfileResponse updateAvatar(long userId, String uploadAvatar) {
+//      0.判空
+        ThrowUtils.throwIf(StrUtil.isBlank(uploadAvatar), ErrorCode.BAD_REQUEST);
+        User currentUser = userService.findById(userId);
+        ThrowUtils.throwIf(currentUser == null, ErrorCode.NOT_FOUND);
+        User user = new User();
+        BeanUtils.copyProperties(currentUser, user);
+        user.setId(userId);
+        user.setAvatar(uploadAvatar);
+        User update = userService.update(user);
+        return update.convertToProfileResponse();
+    }
 
 
 }

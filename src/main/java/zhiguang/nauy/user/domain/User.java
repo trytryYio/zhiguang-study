@@ -149,27 +149,26 @@ public class User implements Serializable {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(getClass().getSimpleName());
-        sb.append(" [");
-        sb.append("Hash = ").append(hashCode());
-        sb.append(", id=").append(id);
-        sb.append(", phone=").append(phone);
-        sb.append(", email=").append(email);
-        sb.append(", passwordHash=").append(passwordHash);
-        sb.append(", nickname=").append(nickname);
-        sb.append(", avatar=").append(avatar);
-        sb.append(", bio=").append(bio);
-        sb.append(", zgId=").append(zgId);
-        sb.append(", gender=").append(gender);
-        sb.append(", birthday=").append(birthday);
-        sb.append(", school=").append(school);
-        sb.append(", tagsJson=").append(tagsJson);
-        sb.append(", createdAt=").append(createdAt);
-        sb.append(", updatedAt=").append(updatedAt);
-        sb.append(", serialVersionUID=").append(serialVersionUID);
-        sb.append("]");
-        return sb.toString();
+        String sb = getClass().getSimpleName() +
+                " [" +
+                "Hash = " + hashCode() +
+                ", id=" + id +
+                ", phone=" + phone +
+                ", email=" + email +
+                ", passwordHash=" + passwordHash +
+                ", nickname=" + nickname +
+                ", avatar=" + avatar +
+                ", bio=" + bio +
+                ", zgId=" + zgId +
+                ", gender=" + gender +
+                ", birthday=" + birthday +
+                ", school=" + school +
+                ", tagsJson=" + tagsJson +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                ", serialVersionUID=" + serialVersionUID +
+                "]";
+        return sb;
     }
 
 

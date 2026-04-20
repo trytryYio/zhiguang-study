@@ -101,20 +101,19 @@ public class LoginLogs implements Serializable {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(getClass().getSimpleName());
-        sb.append(" [");
-        sb.append("Hash = ").append(hashCode());
-        sb.append(", id=").append(id);
-        sb.append(", userId=").append(userId);
-        sb.append(", identifier=").append(identifier);
-        sb.append(", channel=").append(channel);
-        sb.append(", ip=").append(ip);
-        sb.append(", userAgent=").append(userAgent);
-        sb.append(", status=").append(status);
-        sb.append(", createdAt=").append(createdAt);
-        sb.append(", serialVersionUID=").append(serialVersionUID);
-        sb.append("]");
-        return sb.toString();
+        String sb = getClass().getSimpleName() +
+                " [" +
+                "Hash = " + hashCode() +
+                ", id=" + id +
+                ", userId=" + userId +
+                ", identifier=" + identifier +
+                ", channel=" + channel +
+                ", ip=" + ip +
+                ", userAgent=" + userAgent +
+                ", status=" + status +
+                ", createdAt=" + createdAt +
+                ", serialVersionUID=" + serialVersionUID +
+                "]";
+        return sb;
     }
 }
