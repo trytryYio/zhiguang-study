@@ -1,5 +1,6 @@
 package zhiguang.nauy.auth.audit.mapper;
 
+import org.apache.ibatis.annotations.Mapper;
 import zhiguang.nauy.auth.audit.domain.LoginLogs;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
@@ -9,6 +10,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @createDate 2026-04-15 11:09:15
 * @Entity generator.domain.LoginLogs
 */
+@Mapper
 public interface LoginLogsMapper extends BaseMapper<LoginLogs> {
 
 }

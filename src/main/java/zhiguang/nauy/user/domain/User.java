@@ -1,5 +1,6 @@
 package zhiguang.nauy.user.domain;
 
+import cn.hutool.core.date.LocalDateTimeUtil;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -12,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import zhiguang.nauy.profile.dto.ProfileResponse;
 
 /**
  * @TableName users
@@ -25,7 +27,7 @@ public class User implements Serializable {
     /**
      *
      */
-    @TableId(type = IdType.ASSIGN_UUID)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -168,5 +170,26 @@ public class User implements Serializable {
         sb.append(", serialVersionUID=").append(serialVersionUID);
         sb.append("]");
         return sb.toString();
+    }
+
+
+    /**
+     * 将 User 实体转换为 ProfileResponse
+     */
+    public ProfileResponse convertToProfileResponse() {
+        return new ProfileResponse(
+                this.getId(),
+                this.getNickname(),
+                this.getAvatar(),
+                this.getBio(),
+                this.getZgId(),
+                this.getGender(),
+                LocalDateTimeUtil.of(this.getBirthday()).toLocalDate(),
+                this.getSchool(),
+                this.getPhone(),
+                this.getEmail(),
+                this.getTagsJson().toString()
+
+        );
     }
 }

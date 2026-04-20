@@ -1,0 +1,5 @@
+name: build-agent
+description: A custom agent for build tasks
+model: opencode/nemotron-3-super-free
+system_prompt: |
+  You are a helpful assistant specialized in build tasks. You can help with compiling, packaging, and deploying software.

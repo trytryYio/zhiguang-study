@@ -10,6 +10,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import zhiguang.nauy.auth.api.dto.*;
 import zhiguang.nauy.auth.audit.service.LoginLogsService;
 import zhiguang.nauy.auth.config.AuthProperties;
@@ -22,6 +23,7 @@ import zhiguang.nauy.auth.verdication.VerificationCheckResult;
 import zhiguang.nauy.auth.verdication.VerificationCodeStatus;
 import zhiguang.nauy.auth.verdication.VerificationScene;
 import zhiguang.nauy.auth.verdication.VerificationService;
+import zhiguang.nauy.common.BaseResponse;
 import zhiguang.nauy.exception.BusinessException;
 import zhiguang.nauy.exception.ErrorCode;
 import zhiguang.nauy.exception.ThrowUtils;
@@ -32,6 +34,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -95,6 +98,16 @@ public class AuthService {
 
 //    ├─ ⑤ 构建 User 对象（nickname="知光用户"+8位UUID）
         User user = User.builder().nickname("知光用户" + UUID.randomUUID().toString().substring(0, 8)).build();
+        switch (request.identifierType()) {
+            case PHONE -> {
+                user.setPhone(identifier);
+            }
+            case EMAIL -> {
+                user.setEmail(identifier);
+            }
+        }
+
+
 //    ├─ ⑥ 如有密码 → validatePassword() → BCrypt 编码
         String password = request.password();
         if (StrUtil.isNotBlank(password)) {
@@ -103,23 +116,23 @@ public class AuthService {
         }
 //    ├─ ⑦ userService.createUser(user) → 写 MySQL
         //没有密码 则直接创建user用户
-        userService.createUser(user);
+        User user1 = userService.createUser(user);
 
 //    ├─ ⑧ jwtService.issueTokenPair(user) → ★ 签发双令牌
-        TokenPair tokenPair = jwtService.issueTokenPair(user);
+        TokenPair tokenPair = jwtService.issueTokenPair(user1);
 //    │   ├─ Access Token: 15min, claims: {uid, token_type="access", nickname}
 //    │   └─ Refresh Token: 7d, claims: {uid, token_type="refresh"}
 //    │       jti = UUID.randomUUID() ← 这个 ID 用作白名单键
 //    ├─ ⑨ storeRefreshToken(userId, tokenPair) → 写入 Redis
 //    │   └─ Redis Key: auth:rt:{userId}:{jti} = "1", TTL=7d
-        storeRefreshToken(user.getId(), tokenPair);
+        storeRefreshToken(user1.getId(), tokenPair);
 //    ├─ ⑩ loginLogService.record() → 写审计日志
 //        把这次注册行为留下审计记录。
-        loginLogsService.record(user.getId(), identifier, "REGISTER", clientInfo.ip(), clientInfo.userAgent(), "SUCCESS");
+        loginLogsService.record(user1.getId(), identifier, "REGISTER", clientInfo.ip(), clientInfo.userAgent(), "SUCCESS");
 
 //    └─ ⑪ 返回 AuthResponse(user + tokens)
 
-        return new AuthResponse(mapUser(user), mapToken(tokenPair));
+        return new AuthResponse(mapUser(user1), mapToken(tokenPair));
     }
 
     /**
@@ -211,10 +224,10 @@ public class AuthService {
      *
      * @param result 验证码校验结果。
      */
-    public void ensureVerificationSuccess(VerificationCheckResult result) {
+    public Boolean ensureVerificationSuccess(VerificationCheckResult result) {
 //        验证码校验成功
         if (result.isSuccess()) {
-            return;
+            return true;
         }
         //不成功的状态
         VerificationCodeStatus status = result.status();
@@ -232,6 +245,7 @@ public class AuthService {
                 ThrowUtils.throwIf(true, ErrorCode.VERIFICATION_TOO_MANY_ATTEMPTS);
             }
         }
+        return false;
 
     }
 
@@ -264,7 +278,7 @@ public class AuthService {
                 user.getAvatar(),
                 user.getPhone(),
                 user.getZgId(),
-                LocalDateTimeUtil.of(user.getBirthday()).toLocalDate(),
+                user.getBirthday() != null ? LocalDateTimeUtil.of(user.getBirthday()).toLocalDate() : null,
                 user.getSchool(),
                 user.getBio(),
                 user.getGender(),
@@ -344,15 +358,16 @@ public class AuthService {
 
     /**
      * 重置密码
+     *
      * @param request
      */
 
     public void resetPassword(PasswordResetRequest request) {
         //1.校验输入的格式+
-        validateIdentifier(request.identifierType(),request.identifier());
+        validateIdentifier(request.identifierType(), request.identifier());
         validatePassword(request.newPassword());
 //        2.标准化标识 把手机号/邮箱统一 格式
-        String identifier =normalizeIdentifier(request.identifierType(), request.identifier());
+        String identifier = normalizeIdentifier(request.identifierType(), request.identifier());
 //        3.查找用户
         User user = findUserByIdentifier(request.identifierType(), identifier);
 //        4.校验验证码
@@ -370,6 +385,7 @@ public class AuthService {
 
     /**
      * 根据标识查找用户
+     *
      * @param identifierType
      * @param identifier
      * @return
@@ -382,10 +398,10 @@ public class AuthService {
         switch (identifierType) {
 
             case PHONE -> {
-                user=userService.findByPhone( identifier);
+                user = userService.findByPhone(identifier);
             }
             case EMAIL -> {
-                user=userService.findByEmail( identifier);
+                user = userService.findByEmail(identifier);
             }
         }
         ThrowUtils.throwIf(ObjUtil.isNull(user), ErrorCode.IDENTIFIER_NOT_FOUND);
@@ -394,6 +410,7 @@ public class AuthService {
 
     /**
      * 标准化标识
+     *
      * @param type
      * @param identifier
      * @return
@@ -403,5 +420,112 @@ public class AuthService {
             case PHONE -> identifier.trim();
             case EMAIL -> identifier.trim().toLowerCase(Locale.ROOT);
         };
+    }
+
+
+    /**
+     * 登出
+     * }
+     *
+     * @param refreshToken
+     */
+    public void logout(String refreshToken) {
+        //登出时撤销 Refresh Token
+        decodeRefreshTokenSafely(refreshToken).ifPresent(jwt -> {
+            // 仅处理刷新令牌
+            if (Objects.equals("refresh", jwtService.extractTokenType(jwt))) {
+//                获取用户在jwt 中的id
+                long userId = jwtService.extractUserId(jwt);
+                String tokenId = jwtService.extractTokenId(jwt);
+//                撤销刷新令牌
+                refreshTokenStore.revokeToken(userId, tokenId);
+            }
+
+        });
+
+    }
+
+    /**
+     * 安全解码 Refresh Token，并返回 JWT 对象。
+     *
+     * @param refreshToken
+     * @return
+     */
+    private Optional<Jwt> decodeRefreshTokenSafely(String refreshToken) {
+        try {
+            return Optional.of(jwtService.decode(refreshToken));
+        } catch (JwtException ex) {
+            return Optional.empty();
+        }
+
+    }
+
+    /**
+     * 登录
+     *
+     * @param request
+     * @param clientInfo
+     * @return
+     */
+    public AuthResponse login(LoginRequest request, ClientInfo clientInfo) {
+//        登录的dto
+        String identifier = request.identifier();
+        IdentifierType identifierType = request.identifierType();
+        String code = request.code();
+//    客户端的dto
+
+//        1.校验标识格式（手机号/邮箱）
+        validateIdentifier(identifierType, identifier);
+        //        2.标准化处理（去除空格、统一格式）
+        String password = request.password();
+        if (password!=null) {
+            validatePassword(password);
+        }
+        //标准化处理（去除空格、统一格式）
+        identifier = normalizeIdentifier(request.identifierType(), request.identifier());
+
+//        3.查询用户是否存在
+        User user = findUserByIdentifier(identifierType, identifier);
+        if (user == null) {
+            ThrowUtils.throwIf(true, ErrorCode.IDENTIFIER_NOT_FOUND);
+        }
+//        4.判断认证方式并验证
+        String channel;
+//        4.1
+        //channel : 密码
+        if (StrUtil.isNotBlank(request.password())) {
+            channel = "PASSWORD";
+
+            if (!StringUtils.hasText(user.getPasswordHash()) ||
+                    !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+                {
+                    // 记录失败的登录日志
+                    loginLogsService.record(user.getId(), identifier, channel, clientInfo.ip(), clientInfo.userAgent(), "FAILED");
+                    throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+
+                }
+            }
+        }else if (StrUtil.isNotBlank(request.code())){
+//            4.2
+            channel="CODE";
+//            验证验证码是否正确
+           Boolean result = ensureVerificationSuccess(verificationService.verify(VerificationScene.LOGIN, identifier, code));
+           if (!result) {
+               loginLogsService.record(user.getId(), identifier, channel, clientInfo.ip(), clientInfo.userAgent(), "FAILED");
+               ThrowUtils.throwIf(true, ErrorCode.VERIFICATION_MISMATCH);
+           }
+        }
+        else {
+            // 4.3 既没有密码也没有验证码，参数不完整
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "请提供验证码或密码");
+        }
+//        5.签发 jwt token对
+        TokenPair tokenPair = jwtService.issueTokenPair(user);
+        // 6. 将 Refresh Token 存入 Redis 白名单
+        storeRefreshToken(user.getId(), tokenPair);
+        // 7. 记录成功的登录日志（包含 IP、UA、认证渠道等信息）
+        loginLogsService.record(user.getId(), identifier, channel, clientInfo.ip(), clientInfo.userAgent(), "SUCCESS");
+        // 8. 返回认证响应（用户信息 + Token 信息）
+        return new AuthResponse(mapUser(user), mapToken(tokenPair));
     }
 }

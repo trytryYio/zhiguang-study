@@ -93,15 +93,15 @@ public class AuthProperties {
         /**
          * 最大尝试次数
          */
-        private int maxAttempts = 5;
+        private int maxAttempts = 100;
         /**
          * 发送间隔时间
          */
-        private Duration sendInterval = Duration.ofSeconds(60);
+        private Duration sendInterval = Duration.ofSeconds(15);
         /**
          * 每日发送限制次数
          */
-        private int dailyLimit = 10;
+        private int dailyLimit = 10000;
     }
     /**
      * 密码相关配置属性

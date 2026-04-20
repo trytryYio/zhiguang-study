@@ -12,7 +12,16 @@ import java.time.Instant;
 * @createDate 2026-04-15 11:09:15
 */
 public interface LoginLogsService extends IService<LoginLogs> {
-
+    /**
+     * 记录登录日志
+     *
+     * @param userId
+     * @param identifier
+     * @param channel
+     * @param ip
+     * @param userAgent
+     * @param status
+     */
     void record(Long userId, String identifier, String channel, String ip, String userAgent, String status);
 
 }

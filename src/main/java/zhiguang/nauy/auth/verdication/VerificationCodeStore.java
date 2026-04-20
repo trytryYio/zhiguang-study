@@ -31,5 +31,6 @@ public interface VerificationCodeStore {
      */
     void saveCode(String name, String identifier, String code, Duration ttl, int maxAttempts);
 
+    void invalidate(String scene, String identifier);
 }
 

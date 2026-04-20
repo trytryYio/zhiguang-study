@@ -46,26 +46,39 @@ public class SecurityConfig {
             throws Exception {
         httpSecurity
                 .csrf(csrf -> csrf.disable())// 关闭 CSRF 防护
-                .cors(Customizer.withDefaults())
+                .cors(Customizer.withDefaults())// 启用 CORS
+                // 无状态会话管理
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                                //公开内容  首页Feed 不需要登录
 
-                                .requestMatchers("/api/v1/knoposts/feed").permitAll()
+                .authorizeHttpRequests(auth ->
+                                auth
+                                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                                        //公开内容  首页Feed 不需要登录
+                                        // Knife4j 和 Swagger 相关资源（必须公开）
+                                        .requestMatchers(
+                                                "/doc.html",
+                                                "/swagger-ui/**",
+                                                "/swagger-ui.html",
+                                                "/v3/api-docs/**",
+                                                "/webjars/**",
+                                                "/favicon.ico"
+                                        ).permitAll()
+                                        .requestMatchers("/api/v1/knoposts/feed").permitAll()
 //                        知文详情 (公开已发布的内容)
-                                .requestMatchers(HttpMethod.GET, "/api/v1/knowposts/detail/*").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/api/v1/knowposts/detail/*").permitAll()
 //                        RAG 回答允许匿名
-                                .requestMatchers(HttpMethod.GET, "/api/v1/knowposts/*/qa/stream").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/api/v1/knowposts/*/qa/stream").permitAll()
 // 认证接口公开
-                                .requestMatchers(
-                                        "/api/v1/auth/send-code",
-                                        "/api/v1/auth/register",
-                                        "/api/v1/auth/login",
-                                        "/api/v1/auth/token/refresh",
-                                        "/api/v1/auth/logout",
-                                        "/api/v1/auth/password/reset"
-                                ).permitAll()
-                                .anyRequest().authenticated()
+                                        .requestMatchers(
+                                                "/api/v1/auth/send-code",
+                                                "/api/v1/auth/register",
+                                                "/api/v1/auth/login",
+                                                "/api/v1/auth/token/refresh",
+                                                "/api/v1/auth/logout",
+                                                "/api/v1/auth/password/reset"
+                                        ).permitAll()
+
+                                        .anyRequest().authenticated()
 
                 )
                 .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()));

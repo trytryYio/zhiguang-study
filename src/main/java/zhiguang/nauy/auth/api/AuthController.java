@@ -95,23 +95,12 @@ public class AuthController {
     /**
      * 登出
      *
-     * @param refreshToken
+     * @param logoutRequest
      * @return
      */
     @PostMapping("/logout")
-    public void logout(String refreshToken) {
-        //登出时撤销 Refresh Token
-        decodeRefreshTokenSafely(refreshToken).ifPresent(jwt -> {
-            // 仅处理刷新令牌
-            if (Objects.equals("refresh", jwtService.extractTokenType(jwt))) {
-//                获取用户在jwt 中的id
-                long userId = jwtService.extractUserId(jwt);
-                String tokenId = jwtService.extractTokenId(jwt);
-//                撤销刷新令牌
-                refreshTokenStore.revokeToken(userId, tokenId);
-            }
-
-        });
+    public void logout(@RequestBody @Valid  LogoutRequest logoutRequest) {
+      authService.logout(logoutRequest.refreshToken());
     }
 
     /**
@@ -128,12 +117,27 @@ public class AuthController {
 
     }
 
+    /**
+     * 发送验证码
+     * @param request
+     * @return
+     */
     @PostMapping("/send-code")
     public BaseResponse<SendCodeResponse> sendCode(@Valid @RequestBody SendCodeRequest request){
         SendCodeResponse sendCodeResponse =verificationService.sendCode(request);
         return ResultUtils.success(sendCodeResponse);
     }
 
+    /**
+     * 登录
+      * @param request
+     * @param httpRequest
+     * @return
+     */
+    @PostMapping("/login")
+    public BaseResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        return ResultUtils.success(authService.login(request, resolveClient(httpRequest)));
+    }
 
 
     /**
@@ -184,20 +188,6 @@ public class AuthController {
 
 
 
-    /**
-     * 安全解码 Refresh Token，并返回 JWT 对象。
-     *
-     * @param refreshToken
-     * @return
-     */
-    private Optional<Jwt> decodeRefreshTokenSafely(String refreshToken) {
-        try {
-            return Optional.of(jwtService.decode(refreshToken));
-        } catch (JwtException ex) {
-            return Optional.empty();
-        }
-
-    }
 
 }
 

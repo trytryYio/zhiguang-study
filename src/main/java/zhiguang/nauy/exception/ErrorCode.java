@@ -25,7 +25,8 @@ public enum ErrorCode {
     PASSWORD_POLICY_VIOLATION(50012, "密码强度不足"),
     REFRESH_TOKEN_INVALID(50013, "刷新令牌无效"),
     BAD_REQUEST(40001, "请求参数错误"),
-    INTERNAL_ERROR(50001, "服务器内部错误");
+    INTERNAL_ERROR(50001, "服务器内部错误"),
+    NOT_FOUND(50014,"找不到该数据" );
 
     private final int code;
     private final String message;

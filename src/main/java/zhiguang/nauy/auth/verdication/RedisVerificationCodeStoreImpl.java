@@ -69,8 +69,8 @@ public class RedisVerificationCodeStoreImpl implements VerificationCodeStore {
 //        如果已尝试次数已经达到或超过最大允许次数，直接返回"尝试次数过多"，不允许继续验证
         String storedCode = data.get(FIELD_CODE);
 //        获取 maxAttempts 字段，如果不存在或格式错误，默认为 5
-        int maxAttempts = parseInt(data.get(FIELD_MAX_ATTEMPTS), 5);
-        int attempts = parseInt(data.get(FIELD_ATTEMPTS), 0);
+        int maxAttempts =  safeParseInt(data.get(FIELD_MAX_ATTEMPTS), 5);
+        int attempts = safeParseInt(data.get(FIELD_ATTEMPTS), 0);
         if (attempts >= maxAttempts) {
             return new VerificationCheckResult(VerificationCodeStatus.TOO_MANY_ATTEMPTS, attempts, maxAttempts);
         }
@@ -136,6 +136,18 @@ public class RedisVerificationCodeStoreImpl implements VerificationCodeStore {
     }
 
     /**
+     * 删除验证码。
+     * @param scene
+     * @param identifier
+     */
+    @Override
+    public void invalidate(String scene, String identifier) {
+        stringRedisTemplate.delete(buildKey(scene, identifier));
+
+    }
+
+
+    /**
      * 生成验证码的 Redis 键名。
      *
      * @param scene      场景名称。
@@ -146,5 +158,23 @@ public class RedisVerificationCodeStoreImpl implements VerificationCodeStore {
         return "auth:code:%s:%s".formatted(scene, identifier);
     }
 
+
+    /**
+     * 安全地解析整数，如果解析失败则返回默认值。
+     *
+     * @param str          要解析的字符串。
+     * @param defaultValue 默认值。
+     * @return 解析后的整数，或默认值。
+     */
+    private static int safeParseInt(String str, int defaultValue) {
+        if (str == null || str.isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(str);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
 }
 

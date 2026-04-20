@@ -21,6 +21,16 @@ public class LoginLogsServiceImpl extends ServiceImpl<LoginLogsMapper, LoginLogs
     implements LoginLogsService{
     @Resource
     private LoginLogsMapper loginLogsMapper;
+
+    /**
+     * 记录日志
+     * @param userId
+     * @param identifier
+     * @param channel
+     * @param ip
+     * @param userAgent
+     * @param status
+     */
     @Transactional
     public void record(Long userId, String identifier, String channel, String ip, String userAgent, String status) {
         LoginLogs log = LoginLogs.builder()
