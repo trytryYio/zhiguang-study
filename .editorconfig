@@ -1,0 +1,62 @@
+# EditorConfig — https://editorconfig.org
+root = true
+
+# Default for all files
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Java
+[*.java]
+charset = utf-8
+indent_size = 4
+
+# Kotlin
+[*.kt]
+charset = utf-8
+indent_size = 4
+
+# XML / HTML
+[*.{xml,html}]
+charset = utf-8
+indent_size = 4
+
+# YAML / JSON
+[*.{yaml,yml,json}]
+charset = utf-8
+indent_size = 2
+
+# Properties
+[*.properties]
+charset = utf-8
+indent_size = 2
+
+# Markdown
+[*.md]
+charset = utf-8
+trim_trailing_whitespace = false
+
+# Shell scripts
+[*.sh]
+charset = utf-8
+end_of_line = lf
+
+# Frontend (React)
+[*.{js,ts,tsx,jsx,css,scss}]
+charset = utf-8
+indent_size = 2
+end_of_line = lf
+
+# Maven wrapper
+[mvnw]
+charset = utf-8
+end_of_line = lf
+
+# Windows scripts
+[*.{bat,cmd,ps1}]
+charset = utf-8
+end_of_line = crlf

@@ -49,4 +49,8 @@ public class ResultUtils {
     public static BaseResponse<?> error(ErrorCode errorCode, String message) {
         return new BaseResponse<>(errorCode.getCode(), null, message);
     }
+
+    public static BaseResponse success() {
+        return new BaseResponse<>(0, null, "ok");
+    }
 }

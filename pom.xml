@@ -16,7 +16,7 @@
     <version>1.0-SNAPSHOT</version>
     <name>nauy-zhiguang</name>
     <description>ZhiGuang MVP authentication service</description>
-
+    <packaging>jar</packaging>
     <properties>
         <java.version>17</java.version>
     </properties>
@@ -61,7 +61,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- 👇 【官方规范】恢复 MyBatis-Plus BOM，统一管理版本，最新稳定版 -->
+            <!--  【官方规范】恢复 MyBatis-Plus BOM，统一管理版本，最新稳定版 -->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-bom</artifactId>
@@ -74,6 +74,7 @@
     </dependencyManagement>
 
     <dependencies>
+
         <!--        knife4j - 修改为 OpenAPI3 版本以支持 Spring Boot 3.x -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
@@ -93,12 +94,16 @@
             <artifactId>hutool-all</artifactId>
             <version>5.8.13</version>
         </dependency>
-        <!-- 👇 【官方规范】Spring Boot3 专用启动器，无版本号（BOM管理），删除冗余的jsqlparser -->
+        <!--  【官方规范】Spring Boot3 专用启动器，无版本号（BOM管理） -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
-
+        <!-- jdk 11+ 引入可选模块 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+        </dependency>
         <!-- Elasticsearch 官方 Java API Client（类型安全的 ES 调用） -->
         <dependency>
             <groupId>co.elastic.clients</groupId>

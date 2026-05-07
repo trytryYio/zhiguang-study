@@ -183,11 +183,11 @@ public class User implements Serializable {
                 this.getBio(),
                 this.getZgId(),
                 this.getGender(),
-                LocalDateTimeUtil.of(this.getBirthday()).toLocalDate(),
+                this.getBirthday()!=null?LocalDateTimeUtil.of(this.getBirthday()).toLocalDate(): null,
                 this.getSchool(),
                 this.getPhone(),
                 this.getEmail(),
-                this.getTagsJson().toString()
+                this.getTagsJson()!=null? this.getTagsJson().toString(): null
 
         );
     }

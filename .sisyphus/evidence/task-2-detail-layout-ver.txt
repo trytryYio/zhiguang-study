@@ -1,0 +1,49 @@
+## Task Analysis: Adding DETAIL_LAYOUT_VER Constant
+
+### Task Summary
+Add a version control constant for cache key management in KnowPostServiceImpl
+
+### Current State
+- **File**: KnowPostServiceImpl.java
+- **Line 79**: `private final ConcurrentHashMap<String, Object> singleFlight = new ConcurrentHashMap<>();`
+- **Line 342**: Uses hardcoded version `0` in cache key: `"knowPost:detail:" + id + ":v" + 0`
+
+### Implementation Requirements
+
+**MUST DO:**
+1. Add constant after line 79 (after singleFlight field)
+2. Declaration: `private static final int DETAIL_LAYOUT_VER = 1;`
+3. Update line 342 to use constant: `"knowPost:detail:" + id + ":v" + DETAIL_LAYOUT_VER`
+
+**MUST NOT DO:**
+- Do NOT modify other code
+- Do NOT change constant value from 1
+- Do NOT place constant elsewhere
+
+### Expected Code Structure (Lines 79-81)
+```java
+private final ConcurrentHashMap<String, Object> singleFlight = new ConcurrentHashMap<>();
+
+private static final int DETAIL_LAYOUT_VER = 1;
+```
+
+### Expected Code Update (Line 342)
+**Before:**
+```java
+String pageKey = "knowPost:detail:" + id + ":v" + 0;
+```
+
+**After:**
+```java
+String pageKey = "knowPost:detail:" + id + ":v" + DETAIL_LAYOUT_VER;
+```
+
+### Verification Methods
+1. Compile: `mvn compile`
+2. Pattern search: `Select-String -Path "..." -Pattern "DETAIL_LAYOUT_VER"`
+
+### Purpose
+Cache key version control for detail page layout changes. Incrementing this version invalidates all cached entries when layout structure changes.
+
+### Status
+Analysis complete. Ready for implementation.

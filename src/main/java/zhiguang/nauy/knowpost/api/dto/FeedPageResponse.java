@@ -1,11 +1,19 @@
 package zhiguang.nauy.knowpost.api.dto;
 
+import java.util.List;
+
 /**
- * @Description: // 类说明，在创建类时要填写
- * @ClassName: FeedPageResponse    // 类名，会自动填充
- * @Author: oyy         // 创建者
- * @Date: 2026/4/12 17:14   // 时间
- * @Version: 1.0     // 版本
+ * 首页 Feed 分页响应DTO
+ *
+ * @param items   Feed列表
+ * @param page    当前页码
+ * @param size    每页大小
+ * @param hasMore 是否还有更多数据
  */
-public class FeedPageResponse {
+public record FeedPageResponse(
+        List<FeedItemResponse> items,
+        int page,
+        int size,
+        boolean hasMore
+) {
 }

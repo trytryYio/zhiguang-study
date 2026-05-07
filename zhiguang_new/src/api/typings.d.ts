@@ -17,6 +17,12 @@ declare namespace API {
     tagJson?: string;
   };
 
+  type BaseResponse = {
+    code?: number;
+    data?: Record<string, any>;
+    message?: string;
+  };
+
   type BaseResponseAuthResponse = {
     code?: number;
     data?: AuthResponse;
@@ -26,6 +32,24 @@ declare namespace API {
   type BaseResponseAuthUserResponse = {
     code?: number;
     data?: AuthUserResponse;
+    message?: string;
+  };
+
+  type BaseResponseFeedPageResponse = {
+    code?: number;
+    data?: FeedPageResponse;
+    message?: string;
+  };
+
+  type BaseResponseKnowPostDetailResponse = {
+    code?: number;
+    data?: KnowPostDetailResponse;
+    message?: string;
+  };
+
+  type BaseResponseKnowPostDraftCreateResponse = {
+    code?: number;
+    data?: KnowPostDraftCreateResponse;
     message?: string;
   };
 
@@ -47,6 +71,102 @@ declare namespace API {
     message?: string;
   };
 
+  type BaseResponseVoid = {
+    code?: number;
+    data?: Record<string, any>;
+    message?: string;
+  };
+
+  type confirmContentParams = {
+    id: number;
+  };
+
+  type deleteUsingDELETEParams = {
+    id: number;
+  };
+
+  type detailParams = {
+    id: number;
+  };
+
+  type FeedItemResponse = {
+    id?: string;
+    title?: string;
+    description?: string;
+    coverImage?: string;
+    tags?: string[];
+    authorAvatar?: string;
+    authorNickname?: string;
+    tagJson?: string;
+    likeCount?: number;
+    favoriteCount?: number;
+    liked?: boolean;
+    faved?: boolean;
+    isTop?: boolean;
+  };
+
+  type FeedPageResponse = {
+    items?: FeedItemResponse[];
+    page?: number;
+    size?: number;
+    hasMore?: boolean;
+  };
+
+  type feedParams = {
+    page?: number;
+    size?: number;
+  };
+
+  type KnowPostContentConfirmRequest = {
+    objectKey: string;
+    etag: string;
+    size: number;
+    sha256: string;
+  };
+
+  type KnowPostDetailResponse = {
+    id?: string;
+    title?: string;
+    description?: string;
+    contentUrl?: string;
+    images?: string[];
+    tags?: string[];
+    authorId?: string;
+    authorAvatar?: string;
+    authorNickname?: string;
+    authorTagJson?: string;
+    likeCount?: number;
+    favoriteCount?: number;
+    liked?: boolean;
+    faved?: boolean;
+    isTop?: boolean;
+    visible?: string;
+    type?: string;
+    publishTime?: string;
+  };
+
+  type KnowPostDraftCreateResponse = {
+    id?: string;
+  };
+
+  type KnowPostPatchRequest = {
+    title?: string;
+    tagId?: number;
+    tags?: string[];
+    imgUrls?: string[];
+    visible?: string;
+    isTop?: boolean;
+    description?: string;
+  };
+
+  type KnowPostTopPatchRequest = {
+    isTop: boolean;
+  };
+
+  type KnowPostVisibilityPatchRequest = {
+    visible: string;
+  };
+
   type LoginRequest = {
     identifierType: "PHONE" | "EMAIL";
     identifier: string;
@@ -58,11 +178,28 @@ declare namespace API {
     refreshToken: string;
   };
 
+  type mineParams = {
+    page?: number;
+    size?: number;
+  };
+
   type PasswordResetRequest = {
     identifierType: "PHONE" | "EMAIL";
     identifier: string;
     code: string;
     newPassword: string;
+  };
+
+  type patchMetadataParams = {
+    id: number;
+  };
+
+  type patchTopParams = {
+    id: number;
+  };
+
+  type patchVisibilityParams = {
+    id: number;
   };
 
   type ProfilePatchRequest = {
@@ -87,6 +224,10 @@ declare namespace API {
     phone?: string;
     email?: string;
     tagJson?: string;
+  };
+
+  type publishParams = {
+    id: number;
   };
 
   type RegisterRequest = {

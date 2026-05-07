@@ -63,7 +63,7 @@ public class SecurityConfig {
                                                 "/webjars/**",
                                                 "/favicon.ico"
                                         ).permitAll()
-                                        .requestMatchers("/api/v1/knoposts/feed").permitAll()
+                                        .requestMatchers("/api/v1/knowposts/feed").permitAll()
 //                        知文详情 (公开已发布的内容)
                                         .requestMatchers(HttpMethod.GET, "/api/v1/knowposts/detail/*").permitAll()
 //                        RAG 回答允许匿名
@@ -104,9 +104,10 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("*")); // TODO: 后续替换为产品白名单
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(false);// 不携带凭证
+        configuration.setMaxAge(3600L);// 预检缓存时间 1小时
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

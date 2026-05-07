@@ -29,4 +29,5 @@ public interface ProfileService {
 
     ProfileResponse updateAvatar(long userId, String uploadAvatar);
 
+    String publicUrl(String objectKey);
 }

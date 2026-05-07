@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 存储服务预签名响应
+ */
 @Data
 @AllArgsConstructor
 

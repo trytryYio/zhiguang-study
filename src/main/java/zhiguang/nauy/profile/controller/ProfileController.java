@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Controller;
@@ -20,6 +21,8 @@ import zhiguang.nauy.profile.dto.ProfilePatchRequest;
 import zhiguang.nauy.profile.dto.ProfileResponse;
 import zhiguang.nauy.profile.service.ProfileService;
 import zhiguang.nauy.storage.OssStorageService;
+
+import java.util.List;
 
 /**
  * @Description: // 类说明，在创建类时要填写
@@ -60,13 +63,14 @@ public class ProfileController {
         /**
          * 上传头像图片
          *
-         * @param jwt
+         * @param
          * @param file
          * @return
          */
-        @PostMapping("/avatar")
-        public BaseResponse<ProfileResponse> uploadAvatar(@AuthenticationPrincipal Jwt jwt,
-                        @RequestPart("file") MultipartFile file) {
+        @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        public BaseResponse<ProfileResponse> uploadAvatar(@RequestPart("file") MultipartFile file,
+                        @AuthenticationPrincipal Jwt jwt
+                        ) {
                 // 0.校验参数
                 if (file.isEmpty()) {
                         ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, "上传文件不能为空");
@@ -75,13 +79,15 @@ public class ProfileController {
                 // 文件非空
 
                 // 1.从 JWT 中提取用户 ID。
-                long userId = jwtService.extractUserId(jwt);
+               long userId = jwtService.extractUserId(jwt);
                 // 2.上传到阿里云存储
-                String uploadAvatar = ossStorageService.uploadAvatar(userId, file);
-                ThrowUtils.throwIf(uploadAvatar == null, ErrorCode.SYSTEM_ERROR, "上传头像失败");
-                // 从存储中获取图片的 URL
-                ProfileResponse profileResponse = profileService.updateAvatar(userId, uploadAvatar);
-                // 设置图片的地址到数据库中
-                return ResultUtils.success(profileResponse);
+               String uploadAvatar = ossStorageService.uploadAvatar(userId, file);
+               ThrowUtils.throwIf(uploadAvatar == null, ErrorCode.SYSTEM_ERROR, "上传头像失败");
+               // 从存储中获取图片的 URL
+               ProfileResponse profileResponse = profileService.updateAvatar(userId, uploadAvatar);
+               // 设置图片的地址到数据库中
+               return ResultUtils.success(profileResponse);
         }
+
+
 }

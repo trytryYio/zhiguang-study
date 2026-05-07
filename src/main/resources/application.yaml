@@ -1,6 +1,7 @@
 server:
   port: 8080
-
+  profiles:
+    active: test
 spring:
   application:
     name: zhiguang-study
@@ -147,6 +148,9 @@ cache:
     mine-cfg:
       ttl-seconds: 10
       max-size: 1000
+    detail-cfg:
+      ttl-seconds: 30
+      max-size: 5000
   hotkey:
     window-seconds: 60
     segment-seconds: 10

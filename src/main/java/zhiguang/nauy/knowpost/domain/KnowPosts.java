@@ -1,52 +1,68 @@
 package zhiguang.nauy.knowpost.domain;
+import java.time.Instant;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+
 import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 
 /**
  * 知文主表-存储文章/帖子的核心元数据
+ * <p>该实体类对应数据库中的 know_posts 表，用于存储用户发布的文章、帖子等内容的核心信息</p>
+ * <p>主要功能：</p>
+ * <ul>
+ *   <li>存储知文的基本信息（标题、描述、分类等）</li>
+ *   <li>管理内容文件的 OSS 存储元数据（对象键、ETag、大小、哈希值等）</li>
+ *   <li>控制知文的可见性、置顶状态和发布状态</li>
+ *   <li>记录创建时间、更新时间和发布时间</li>
+ * </ul>
+ *
  * @TableName know_posts
  */
 @TableName(value ="know_posts")
 @Data
 public class KnowPosts implements Serializable {
     /**
-     * 
+     * 知文唯一标识ID
+     * <p>使用雪花算法生成的分布式ID，作为主键</p>
      */
-    @TableId
+    @TableId(type = IdType.INPUT)
     private Long id;
 
     /**
      * 主分类/内容分类ID
+     * <p>关联到标签表的主标签ID，用于对知文进行分类</p>
      */
     private Long tagId;
 
     /**
-     * 标签名数组，例如 ["java","编程"]
+     * 标签名数组
+     * <p>存储多个标签名称，例如 ["java","编程"]，以 JSON 格式存储</p>
      */
     private Object tags;
 
     /**
-     * 
+     * 知文标题
+     * <p>文章的标题，建议长度不超过50个字符</p>
      */
     private String title;
 
     /**
-     * 摘要/描述，最多50字
+     * 摘要/描述
+     * <p>文章的简短描述或摘要，最多50字，用于列表展示和搜索</p>
      */
     private String description;
 
     /**
-     * 正文存储于OSS的访问URL或签名URL
+     * 正文访问URL
+     * <p>存储在OSS中的正文内容的访问URL或预签名URL，用户可通过此URL访问完整内容</p>
      */
     private String contentUrl;
 
     /**
      * OSS对象Key
+     * <p>存储在阿里云OSS中的对象键，用于生成访问URL和管理文件</p>
      */
     private String contentObjectKey;
 
@@ -114,6 +130,9 @@ public class KnowPosts implements Serializable {
      * 
      */
     private Date publishTime;
+
+    @TableLogic
+    private Boolean isDelete;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
@@ -209,4 +228,6 @@ public class KnowPosts implements Serializable {
         sb.append("]");
         return sb.toString();
     }
+
+
 }

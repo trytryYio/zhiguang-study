@@ -431,17 +431,18 @@ public class AuthService {
      */
     public void logout(String refreshToken) {
         //登出时撤销 Refresh Token
-        decodeRefreshTokenSafely(refreshToken).ifPresent(jwt -> {
+        Optional<Jwt> jwtOptional = decodeRefreshTokenSafely(refreshToken);
+        if (jwtOptional.isPresent()) {
+            Jwt jwt = jwtOptional.get();
             // 仅处理刷新令牌
             if (Objects.equals("refresh", jwtService.extractTokenType(jwt))) {
-//                获取用户在jwt 中的id
+                //                获取用户在jwt 中的id
                 long userId = jwtService.extractUserId(jwt);
                 String tokenId = jwtService.extractTokenId(jwt);
-//                撤销刷新令牌
+                //                撤销刷新令牌
                 refreshTokenStore.revokeToken(userId, tokenId);
             }
-
-        });
+        }
 
     }
 

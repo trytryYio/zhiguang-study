@@ -1,20 +1,22 @@
 package zhiguang.nauy.profile.service;
 
-import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import jakarta.annotation.Resource;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import zhiguang.nauy.exception.BusinessException;
 import zhiguang.nauy.exception.ErrorCode;
 import zhiguang.nauy.exception.ThrowUtils;
 import zhiguang.nauy.profile.dto.ProfilePatchRequest;
 import zhiguang.nauy.profile.dto.ProfileResponse;
+import zhiguang.nauy.storage.OssProperties;
 import zhiguang.nauy.user.domain.User;
 import zhiguang.nauy.user.mapper.UserMapper;
 import zhiguang.nauy.user.service.UserService;
+
+import java.beans.ConstructorProperties;
 
 /**
  * @Description: // 类说明，在创建类时要填写
@@ -24,7 +26,11 @@ import zhiguang.nauy.user.service.UserService;
  * @Version: 1.0     // 版本
  */
 @Service
+@AllArgsConstructor
 public class ProfileServiceImpl implements ProfileService{
+    // 属性
+    private final OssProperties props;
+
     @Resource
     private UserService userService;
     @Resource
@@ -96,5 +102,15 @@ public class ProfileServiceImpl implements ProfileService{
         return update.convertToProfileResponse();
     }
 
+    @Override
+    public String publicUrl(String objectKey) {
+        // 构建对象存储的公开访问URL
+        // 优先使用自定义域名，否则使用默认Bucket域名格式
+        if (props.getPublicDomain() != null && !props.getPublicDomain().isBlank()) {
+            return props.getPublicDomain().replaceAll("/$", "") + "/" + objectKey;
+        }
+        //默认域名
+        return "https://" + props.getBucket() + "." + props.getEndpoint() + "/" + objectKey;
 
+    }
 }

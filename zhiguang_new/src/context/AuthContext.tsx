@@ -280,19 +280,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return;
       }
       // 调用认证服务刷新令牌
-      const result = await refresh(tokens.refreshToken);
+
+      const result = await refresh({ refreshToken: tokens.refreshToken });
       // 将刷新结果转换为令牌对象
       const nextTokens = toTokens(result);
       setTokens(nextTokens);
       persistTokens(nextTokens);
-      await me(nextTokens.accessToken);
+      await me();
       return result;
     } catch (error) {
       // 刷新失败时记录错误并执行登出操作
       console.error("刷新登录状态失败", error);
       await toLogout();
     }
-  }, [tokens, fetchUser, logout]);
+  }, [tokens, fetchUser, toLogout]);
 
   /**
    * 重新加载用户信息
@@ -302,7 +303,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const reloadUserInfo = useCallback(async () => {
     if (!tokens) return;
-    await me(tokens.accessToken);
+    await me();
   }, [tokens, fetchUser]);
 
   // 设置定时任务，每分钟检查并刷新令牌

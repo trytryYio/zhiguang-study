@@ -1,0 +1,100 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: zhiguang-study
+  datasource:
+    url: jdbc:mysql://localhost:3306/zg_auth?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: 123123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1700000
+      keepalive-time: 300000
+      connection-timeout: 30000
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.ai.vectorstore.elasticsearch.autoconfigure.ElasticsearchVectorStoreAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.ai.autoconfigure.vectorstore.elasticsearch.ElasticsearchVectorStoreAutoConfiguration
+
+knife4j:
+  enable: true
+  openapi:
+    title: 接口文档
+    version: v1.0
+    group:
+      default:
+        api-rule: all
+
+canal:
+  enabled: false
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+auth:
+  jwt:
+    issuer: zhiguang
+    key-id: zhiguang-key
+    private-key: classpath:keys/private.pem
+    public-key: classpath:keys/public.pem
+    access-token-ttl: PT15M
+    refresh-token-ttl: P7D
+  verification:
+    code-length: 6
+    ttl: PT5M
+    max-attempts: 5
+    send-interval: PT15S
+    daily-limit: 100
+  password:
+    bcrypt-strength: 12
+    min-length: 8
+
+logging:
+  level:
+    root: INFO
+
+oss:
+  endpoint: oss-cn-beijing.aliyuncs.com
+  access-key-id: ${OSS_ACCESS_KEY_ID}
+  access-key-secret: ${OSS_ACCESS_KEY_SECRET}
+  bucket: zhiguangapp
+  public-domain: ${OSS_PUBLIC_DOMAIN:}
+  profile: "zhiguangapp"
+  folder: avatars
+
+cache:
+  l2:
+    public-cfg:
+      ttl-seconds: 15
+      max-size: 1000
+    mine-cfg:
+      ttl-seconds: 10
+      max-size: 1000
+    detail-cfg:
+      ttl-seconds: 30
+      max-size: 5000
+  hotkey:
+    window-seconds: 60
+    segment-seconds: 10
+    level-low: 50
+    level-medium: 200
+    level-high: 500
+    extend-low-seconds: 20
+    extend-medium-seconds: 60
+    extend-high-seconds: 120

@@ -70,6 +70,13 @@ mvn test -Dtest=ClassNameTest
 mvn test -Dtest=ClassNameTest#methodName
 ```
 
+## Local Graphify Usage
+
+- In this workspace, the reliable graphify entrypoints are subcommands like `graphify query "..."`, `graphify explain "..."`, `graphify path "A" "B"`, and `graphify update "."`.
+- Do **not** use bare `graphify .` as a local CLI shortcut.
+- For OpenCode sessions in this repo, prefer the local graphify plugin tools instead of assuming `/graphify` slash-command execution is available.
+- Windows PowerShell 5.1 does not support `&&`, so any generated shell guidance must avoid it.
+
 ### Configuration
 - Main config: `src/main/resources/application.yml`
 - Database schema: `db/schema.sql`
@@ -165,3 +172,13 @@ Derived from Andrej Karpathy's observations on LLM coding pitfalls.
 - Transform tasks into verifiable criteria before implementing.
 - For multi-step tasks, state a brief plan with verification checkpoints.
 - Loop independently until criteria are met.
+
+### 5. Windows Chinese Encoding Rules (Critical)
+
+**Windows 中文环境编码规则，必须严格遵守：**
+
+- **执行 Python 脚本时**，必须在脚本开头加 `import sys; sys.stdout.reconfigure(encoding='utf-8')`，否则中文输出会在终端乱码
+- **读取中文路径/文件名时**，直接用 `os.listdir()` / `pathlib.Path` 返回的 Unicode 字符串，**绝对不要**用 `.encode('latin1').decode('xxx')` 这种编解码转换——Windows 文件名本身就是 Unicode，不需要转换
+- **读取 CSV 文件时**，优先用 `encoding='utf-8-sig'`（带 BOM 的 UTF-8），其次是 `encoding='utf-8'`。**不要**用 `gbk` 或 `gb2312`
+- **如果遇到编码问题**，先用 `chardet` 检测，不要猜测。大部分现代文件都是 UTF-8 系列
+- **PowerShell 输出中文时**，确保 `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` 或 `$OutputEncoding = [System.Text.Encoding]::UTF8`

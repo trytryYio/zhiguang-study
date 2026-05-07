@@ -79,6 +79,5 @@ public interface UserService extends IService<User> {
      * @return
      */
 
-    @Transactional
     User update(User user);
 }

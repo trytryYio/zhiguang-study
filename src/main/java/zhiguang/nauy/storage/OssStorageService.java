@@ -71,9 +71,10 @@ public class OssStorageService {
      * @return
      */
 
-    private String publicUrl(String objectKey) {
+    public String publicUrl(String objectKey) {
         if (props.getPublicDomain() != null && !props.getPublicDomain().isBlank()) {
             // 如果配置了公共域名，则返回该域名
+//            `replaceAll("/$", "")` 是去掉域名末尾的斜杠，避免拼接出双斜杠
             return props.getPublicDomain().replaceAll("/$", "") + "/" + objectKey;
         }
         // 如果没有配置公共域名，则返回 OSS 域名
@@ -110,7 +111,6 @@ public class OssStorageService {
 
     /**
      * 确保配置已正确设置
-     * 
      */
     private void ensureConfigured() {
         if (props.getEndpoint() == null || props.getAccessKeyId() == null || props.getAccessKeySecret() == null
