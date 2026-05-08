@@ -18,7 +18,10 @@ target/
 *.iws
 *.iml
 *.ipr
-
+.opencode
+.sisyphus
+.vscode
+.workbuddy
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

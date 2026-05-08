@@ -54,4 +54,26 @@ public class CounterKeys {
     public static String sdsKey(String entityType, String entityId) {
         return String.format("cnt:%s:%s:%s", CounterSchema.SCHEMA_ID, entityType, entityId);
     }
+
+    /**
+     * 用户维度计数键（Redis Hash 方式，简单计数）
+     * 存储：Redis Hash，field=指标名（followings/followers/posts等），value=计数
+     *
+     * @param userId 用户ID
+     * @return 键名，如 "user:counter:123"
+     */
+    public static String userCounterKey(String userId) {
+        return String.format("user:counter:%s", userId);
+    }
+
+    /**
+     * 用户维度 SDS 键（用于 SDS 固定结构计数）
+     * 存储：二进制数据，每个指标4字节Int32
+     *
+     * @param userId 用户ID
+     * @return 键名，如 "ucnt:123"
+     */
+    public static String userSdsKey(String userId) {
+        return String.format("ucnt:%s", userId);
+    }
 }

@@ -1,12 +1,5 @@
 package zhiguang.nauy.relation.service.impl;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
-import java.time.Duration;
-import java.util.*;
-
 import cn.hutool.json.JSONUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.annotation.Resource;
@@ -15,17 +8,21 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import zhiguang.nauy.counter.service.UserCounterService;
 import zhiguang.nauy.exception.ErrorCode;
 import zhiguang.nauy.exception.ThrowUtils;
 import zhiguang.nauy.outbox.mapper.OutboxMapper;
 import zhiguang.nauy.profile.dto.ProfileResponse;
-import zhiguang.nauy.profile.service.ProfileService;
 import zhiguang.nauy.relation.event.RelationEvent;
 import zhiguang.nauy.relation.mapper.RelationMapper;
 import zhiguang.nauy.relation.service.RelationService;
 import zhiguang.nauy.user.domain.User;
 import zhiguang.nauy.user.service.UserService;
 
+import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
@@ -41,6 +38,8 @@ import java.util.stream.Collectors;
 @Service
 
 public class RelationServiceImpl implements RelationService {
+    @Resource
+    private UserCounterService userCounterService;
     @Resource
     private UserService userService;
 
@@ -168,6 +167,20 @@ public class RelationServiceImpl implements RelationService {
             : following(userId, limit, offset);//偏移量分页
         return toProfiles(ids);
     }
+    /**
+     * 获取粉丝列表的用户资料。
+     * <p>支持偏移量分页和游标分页两种模式：</p>
+     * <ul>
+     *   <li>当 cursor 为 null 时，使用 offset 进行偏移量分页</li>
+     *   <li>当 cursor 不为 null 时，使用 cursor 进行游标分页（基于时间戳）</li>
+     * </ul>
+     *
+     * @param userId 目标用户ID，查询该用户的粉丝列表
+     * @param limit  返回数量上限
+     * @param offset 偏移量（仅在 cursor 为 null 时生效）
+     * @param cursor 游标（毫秒时间戳，用于深度分页优化）
+     * @return 粉丝用户的资料响应列表
+     */
 
     @Override
     public List<ProfileResponse> followersProfiles(long userId, int limit, int offset, Long cursor) {
@@ -203,9 +216,7 @@ public class RelationServiceImpl implements RelationService {
 //        2.    缺失或结构异常 (少于 5段 * 每段4字节 时)尝试重建
         if (raw == null || raw.length < 20) {
             try {
-//               todo count 没完成
-
-//                userCounterService.rebuildAllCounters(userId)
+                userCounterService.rebuildAllCounters(userId);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -266,8 +277,7 @@ public class RelationServiceImpl implements RelationService {
             // 段数异常或值不一致则触发全量重建
             if ((seg != 5) || sdsFollowings != (long) dbFollowings || sdsFollowers != (long) dbFollowers) {
                 try {
-                    //todo count 没完成
-//                    userCounterService.rebuildAllCounters(userId);
+                    userCounterService.rebuildAllCounters(userId);
                 } catch (Exception ignored) {
                 }
 
@@ -302,6 +312,16 @@ public class RelationServiceImpl implements RelationService {
         m.put("likedPosts", read.apply(4));
         m.put("favedPosts", read.apply(5));
         return m;
+    }
+
+    @Override
+    public long followingCount(long userId) {
+        return mapper.countFollowingActive(userId);
+    }
+
+    @Override
+    public long followersCount(long userId) {
+        return mapper.countFollowerActive(userId);
     }
 
     /**

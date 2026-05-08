@@ -89,7 +89,7 @@ public interface RelationMapper {
     Map<Long, Map<String, Object>> listFollowerRows(@Param("userId") long userId, @Param("limit") int limit, @Param("offset") int offset);
 
     /**
-     * 关注列表
+     * 统计关注列表
      * @param userId
      * @return
      */
@@ -97,7 +97,7 @@ public interface RelationMapper {
     int countFollowingActive(@Param("userId") long userId);
 
     /**
-     * 粉丝列表
+     * 统计粉丝列表
      * @param userId
      * @return
      */

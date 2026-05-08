@@ -4,5 +4,8 @@
     "*": "allow",
     "doom_loop": "deny"
   },
-  "plugin": ["opencode-supermemory"]
+  "plugin": [
+    "opencode-supermemory",
+    ".opencode/plugins/graphify.js"
+  ]
 }

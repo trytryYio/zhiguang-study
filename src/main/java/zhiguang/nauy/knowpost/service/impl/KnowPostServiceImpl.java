@@ -1,23 +1,18 @@
 package zhiguang.nauy.knowpost.service.impl;
 
-import java.time.Duration;
-import java.util.*;
-
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import zhiguang.nauy.cache.config.HotKeyDetector;
 import zhiguang.nauy.exception.BusinessException;
@@ -28,15 +23,18 @@ import zhiguang.nauy.knowpost.domain.KnowPostDetailRow;
 import zhiguang.nauy.knowpost.domain.KnowPostFeedRow;
 import zhiguang.nauy.knowpost.domain.KnowPosts;
 import zhiguang.nauy.knowpost.domain.id.SnowflakeIdGenerator;
+import zhiguang.nauy.knowpost.mapper.KnowPostsMapper;
 import zhiguang.nauy.knowpost.service.KnowPostFeedService;
 import zhiguang.nauy.knowpost.service.KnowPostsService;
-import zhiguang.nauy.knowpost.mapper.KnowPostsMapper;
-import org.springframework.stereotype.Service;
 import zhiguang.nauy.storage.OssStorageService;
 import zhiguang.nauy.user.domain.User;
 import zhiguang.nauy.user.service.UserService;
 
+import java.time.Duration;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 知文服务实现类
@@ -75,6 +73,8 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
     private Cache<String, KnowPostDetailResponse> knowPostDetailCache;
 
     private final ConcurrentHashMap<String, Object> singleFlight = new ConcurrentHashMap<>();
+    @Autowired
+    private KnowPostsMapper knowPostsMapper;
 
     /**
      * 创建草稿
@@ -487,6 +487,27 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
         knowPostFeedRow.setPublishTime(knowPosts.getPublishTime() != null ? knowPosts.getPublishTime().toInstant() : null);
         knowPostFeedRow.setIsTop(knowPosts.getIsTop() != null ? knowPosts.getIsTop() == 1 : false);
         return knowPostFeedRow;
+    }
+
+    /**
+     * 获取创作者内容数量
+     * @param creatorId 创作者
+     * @return
+     */
+    @Override
+    public List<Long> countUserPosts(long creatorId) {
+        LambdaQueryWrapper<KnowPosts> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(KnowPosts::getCreatorId, creatorId)
+            .eq(KnowPosts::getIsDelete,false)
+            .select(KnowPosts::getId);
+        List<Object> idObj = knowPostsMapper.selectObjs(queryWrapper);
+        List<Long> collect = idObj.stream().map(obj -> Long.parseLong(obj.toString()))
+            .distinct()//去重
+            .collect(Collectors.toList());
+
+
+
+        return collect;
     }
 
 

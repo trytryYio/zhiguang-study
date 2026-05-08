@@ -34,7 +34,7 @@ public final class CounterSchema {
     public static final String SCHEMA_ID = "V1";
 
     // 每个指标占用的字节数（4字节=Int32，范围大约 +-21亿）
-public static final int BYTES_PER_METRIC = 4;
+    public static final int BYTES_PER_METRIC = 4;
 
     // 预留的指标位数（目前只用like和fav，其他预留）
     public static final int SCHEMA_LEN = 5;

@@ -1,6 +1,5 @@
 package zhiguang.nauy.counter.service.impl;
 
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.*;
@@ -17,6 +16,7 @@ import zhiguang.nauy.counter.event.CounterEventProducer;
 import zhiguang.nauy.counter.schema.BitmapShard;
 import zhiguang.nauy.counter.schema.CounterKeys;
 import zhiguang.nauy.counter.schema.CounterSchema;
+import zhiguang.nauy.counter.schema.SdsUtils;
 import zhiguang.nauy.counter.service.CounterService;
 import zhiguang.nauy.exception.ErrorCode;
 import zhiguang.nauy.exception.ThrowUtils;
@@ -50,7 +50,7 @@ public class CounterServiceImpl implements CounterService {
     private final ApplicationEventPublisher eventPublisher;
     private final RedissonClient redisson;
 
-    public CounterServiceImpl(StringRedisTemplate redis, CounterEventProducer eventProducer, ApplicationEventPublisher eventPublisher, RedissonClient redisson) {
+    public CounterServiceImpl(StringRedisTemplate redis, CounterEventProducer eventProducer, ApplicationEventPublisher eventPublisher, RedissonClient redisson, SdsUtils sdsUtils) {
         this.redis = redis;
         this.eventProducer = eventProducer;
         this.eventPublisher = eventPublisher;
@@ -144,7 +144,7 @@ public class CounterServiceImpl implements CounterService {
         ThrowUtils.throwIf(metrics.size() > CounterSchema.SCHEMA_LEN, ErrorCode.PARAMS_ERROR);
         //1.生成SDS 键 并且读取
         String sdsKey = CounterKeys.sdsKey(entityType, entityId);
-        byte[] raw = getRaw(sdsKey);
+        byte[] raw = SdsUtils.getRaw(redis,sdsKey);
         //2.检查是否需要重建
         //字节长度
         int expectedLen = CounterSchema.SCHEMA_LEN * CounterSchema.BYTES_PER_METRIC;
@@ -184,7 +184,7 @@ public class CounterServiceImpl implements CounterService {
                     return result;
                 }
                 //3.4双重检查
-                byte[] recheckRaw = getRaw(sdsKey);
+                byte[] recheckRaw = SdsUtils.getRaw(redis,sdsKey);
                 if (recheckRaw != null && recheckRaw.length == expectedLen) {
                     log.info("双重检查：SDS已被其他线程重建，直接使用");
                     raw = recheckRaw; // 用新的raw
@@ -192,7 +192,7 @@ public class CounterServiceImpl implements CounterService {
                     //3.5 尝试重建
                     rebuildFromBitmap(entityType, entityId, sdsKey, expectedLen);
                     //重建后再获取
-                    raw = getRaw(sdsKey);
+                    raw = SdsUtils.getRaw(redis,sdsKey);
                 }
                 resetBackoff(entityType, entityId);
             } catch (InterruptedException e) {
@@ -215,7 +215,7 @@ public class CounterServiceImpl implements CounterService {
                 // like: 1 * 4 = 4（偏移量4）
                 // fav:  2 * 4 = 8（偏移量8）
                 //从raw 的第offset开始读取4个字节 转化为int32
-                long value = readInt32BE(raw, offset);
+                long value = SdsUtils.readInt32BE(raw, offset);
 
                 result.put(metric, value);
             } else {
@@ -261,56 +261,14 @@ public class CounterServiceImpl implements CounterService {
             Integer idx = CounterSchema.NAME_TO_IDX.get(entry.getKey());
             if (idx != null) {
                 int offset = idx * CounterSchema.BYTES_PER_METRIC;
-                writeInt32BE(newSds, offset, entry.getValue());
+                SdsUtils.writeInt32BE(newSds, offset, entry.getValue());
             }
 
         });
         //3.写入Redis
-        setRaw(sdsKey, newSds);
+        SdsUtils.setRaw(redis,sdsKey, newSds);
         log.info("重建完成：entityType={}, entityId={}", entityType, entityId);
 
-    }
-
-    /**
-     * 将 32 位整数写入字节数组的指定位置（和参考项目逻辑一致）
-     *
-     * @param newSds 目标字节数组
-     * @param offset 写入位置的偏移量
-     * @param value  要写入的整数值
-     */
-    private void writeInt32BE(byte[] newSds, int offset, Long value) {
-        // 将整数转换为字节数组
-        for (int i = 3; i >= 0; i--) {
-            newSds[offset + i] = (byte) (value & 0xFF);
-            value >>=8;
-        }
-    }
-    /**
-     * 将 SDS 二进制数据写入 Redis。
-     * <p>由于使用 StringRedisTemplate，需通过 ISO-8859-1 编码实现字节数组到字符串的无损透传，确保二进制结构不被破坏。</p>
-     *
-     * @param sdsKey SDS 计数器的 Redis Key
-     * @param newSds 待存储的二进制字节数组（大端序 32 位整数序列）
-     */
-    private void setRaw(String sdsKey, byte[] newSds) {
-        // 使用 StringRedisTemplate 存储二进制数据时，需要将其转换为 String
-        // 注意：这里直接使用 new String(byte[]) 可能会因为编码问题导致数据损坏，
-        // 但在 Redis 中存储二进制数据通常建议使用 RedisTemplate<byte[], byte[]> 或者确保编码一致。
-        // 鉴于当前使用的是 StringRedisTemplate，且 getRaw 中使用 StandardCharsets.UTF_8 读取，
-        // 这里为了保持一致性，我们尝试直接存储。但更严谨的做法是使用原生 RedisConnection 或切换 Template。
-        // 考虑到上下文 getRaw 也是通过 opsForValue().get().getBytes() 获取，
-        // 这里直接存入 String 即可，Redis 会将其视为字节序列。
-        // 为了防止 UTF-8 编码转换带来的潜在问题（如果 byte 数组包含非 UTF-8 合法序列），
-        // 最佳实践在 StringRedisTemplate 下通常是避免存储纯二进制，或者使用 ISO-8859-1 (Latin-1) 这种单字节编码进行透传。
-
-        if (newSds == null || newSds.length == 0) {
-            redis.delete(sdsKey);
-            return;
-        }
-
-        // 使用 ISO-8859-1 编码将 byte[] 转换为 String，这样可以保证字节不被修改地存储和读取
-        String value = new String(newSds, StandardCharsets.UTF_8);
-        redis.opsForValue().set(sdsKey, value);
     }
 
     /**
@@ -423,34 +381,6 @@ public class CounterServiceImpl implements CounterService {
     }
 
     /**
-     * 从字节数组中按大端序（Big-Endian）读取一个 32 位整数。
-     * <p>用于解析 SDS 二进制结构中的计数值，每次读取 4 个字节并组合为 long 类型。</p>
-     *
-     * @param buf    包含二进制数据的字节数组
-     * @param offset 起始偏移量（从该位置开始读取 4 个字节）
-     * @return 解析后的 32 位整数值（以 long 类型返回）
-     */
-    private long readInt32BE(byte[] buf, int offset) {
-        long n = 0;
-        for (int i = 0; i < 4; i++) {
-            n = (n << 8) | (buf[offset + i] & 0xFFL);
-        }
-        return n;
-    }
-
-    /**
-     * 从 Redis 读取 SDS 原始二进制数据。
-     *
-     * @param sdsKey SDS 计数器的 Redis Key
-     * @return 原始字节数组，若 Key 不存在则可能抛出异常（需调用方处理）
-     */
-
-    private byte[] getRaw(String sdsKey) {
-        String value = redis.opsForValue().get(sdsKey);
-        return value != null ? value.getBytes(StandardCharsets.UTF_8) : null;
-    }
-
-    /**
      * 批量获取实体计数汇总（SDS）。
      * <p>利用 Redis 管道（Pipeline）一次性读取多个实体的 SDS 二进制数据，并在内存中解析，显著降低网络 RTT。</p>
      *
@@ -486,16 +416,16 @@ public class CounterServiceImpl implements CounterService {
             Object rawObj = (i < rawList.size()) ? rawList.get(i) : null;
             byte[] raw = (rawObj instanceof byte[]) ? (byte[]) rawObj : null;
 
-            // 如果数据长度符合预期，则复用 readInt32BE 进行解析
-            if (raw!=null&&raw.length==expectedLen){
-                for (String metric : metrics) {
-                    Integer idx = CounterSchema.NAME_TO_IDX.get(metric);
-                    if (idx != null) {
-                        int offset = idx * CounterSchema.BYTES_PER_METRIC;
-                        // 直接调用类中已有的解析方法
-                        counts.put(metric, readInt32BE(raw, offset));
-                    }
-                }
+             // 如果数据长度符合预期，则复用 readInt32BE 进行解析
+             if (raw!=null&&raw.length==expectedLen){
+                 for (String metric : metrics) {
+                     Integer idx = CounterSchema.NAME_TO_IDX.get(metric);
+                     if (idx != null) {
+                         int offset = idx * CounterSchema.BYTES_PER_METRIC;
+                         // 使用 SdsUtils 解析方法
+                         counts.put(metric, SdsUtils.readInt32BE(raw, offset));
+                     }
+                 }
             }else {
                 //数据损坏或者丢失返回0
                 for (String metric : metrics)
@@ -507,6 +437,43 @@ public class CounterServiceImpl implements CounterService {
         return result;
     }
 
+
+    @Override
+    public boolean isLiked(String entityType, String entityId, long userId) {
+        return checkBitmapState(entityType, entityId, userId, "like");
+    }
+
+
+
+    @Override
+    public boolean isFaved(String entityType, String entityId, long userId) {
+        return checkBitmapState(entityType, entityId, userId, "fav");
+    }
+    /**
+     * 检查用户在位图中的状态。
+     *
+     * @param entityType 实体类型（如 "knowpost"）
+     * @param entityId   实体ID（如帖子ID "123"）
+     * @param userId     用户ID
+     * @param metric     指标名称（如 "like"、"fav"）
+     * @return true 表示用户已执行该操作，false 表示未执行
+     */
+    private boolean checkBitmapState(String entityType, String entityId, long userId, String metric) {
+
+        // 0. 校验参数
+        ThrowUtils.throwIf(StrUtil.isBlank(entityType) || StrUtil.isBlank(entityId), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(!CounterSchema.SUPPORTED_METRICS.contains(metric), ErrorCode.PARAMS_ERROR);
+
+        //1.计算分片位置
+        long chunk = BitmapShard.chunkOf(userId);
+        long bit = BitmapShard.bitOf(userId);
+        String bitmapKey = CounterKeys.bitmapKey(metric, entityType, entityId, chunk);
+
+        //从bitmapkey 中获取bit 判断是否为1 -> 返回true
+        Boolean aBoolean = redis.opsForValue().getBit(bitmapKey, bit);
+        return Boolean.TRUE.equals(aBoolean);
+    }
     /**
      * 实际处理 点赞和取消点赞的函数
      *

@@ -1,10 +1,10 @@
 package zhiguang.nauy.knowpost.service;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import zhiguang.nauy.knowpost.api.dto.KnowPostDetailResponse;
 import zhiguang.nauy.knowpost.domain.KnowPostDetailRow;
 import zhiguang.nauy.knowpost.domain.KnowPostFeedRow;
 import zhiguang.nauy.knowpost.domain.KnowPosts;
-import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
 
@@ -108,5 +108,15 @@ public interface KnowPostsService extends IService<KnowPosts> {
 
     // ... existing code ...
     KnowPostFeedRow toKnowPostFeedRow(KnowPosts knowPosts);
+
+    /**
+     * 获取用户发布的知文数量
+     * <p>根据用户ID查询该用户发布的知文数量</p>
+     *
+     * @param creatorId 用户ID
+     * @return 用户发布的知文数量
+     */
+    List<Long> countUserPosts(long creatorId);
+
 }
 

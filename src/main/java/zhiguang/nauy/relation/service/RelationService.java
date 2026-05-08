@@ -62,4 +62,16 @@ public interface RelationService {
      * @return
      */
     Map<String, Long> counter(long userId);
+    /**
+     * 关注数
+     * @param userId
+     * @return
+     */
+    long followingCount(long userId);
+    /**
+     * 粉丝数
+     * @param userId
+     * @return
+     */
+    long followersCount(long userId);
 }
