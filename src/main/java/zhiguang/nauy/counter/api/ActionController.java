@@ -30,7 +30,6 @@ import java.util.Map;
 @RequestMapping("/api/v1/action")
 public class ActionController {
 
-    // TODO: 注入CounterService并实现接口
 
     private final CounterService counterService;
     private final JwtService jwtService;

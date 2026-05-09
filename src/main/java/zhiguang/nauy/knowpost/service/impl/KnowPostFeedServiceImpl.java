@@ -9,17 +9,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import zhiguang.nauy.cache.config.HotKeyDetector;
+import zhiguang.nauy.counter.service.CounterService;
+import zhiguang.nauy.exception.ErrorCode;
+import zhiguang.nauy.exception.ThrowUtils;
 import zhiguang.nauy.knowpost.api.dto.FeedItemResponse;
 import zhiguang.nauy.knowpost.api.dto.FeedPageResponse;
 import zhiguang.nauy.knowpost.domain.KnowPostFeedRow;
 import zhiguang.nauy.knowpost.domain.KnowPosts;
 import zhiguang.nauy.knowpost.mapper.KnowPostsMapper;
 import zhiguang.nauy.knowpost.service.KnowPostFeedService;
+import zhiguang.nauy.relation.service.RelationService;
 
 import javax.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -35,6 +41,10 @@ public class KnowPostFeedServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPo
     @Resource
     private Cache<String, FeedPageResponse> feedPublicCache;
 
+    @Resource
+    private CounterService counterService;
+    @Resource
+    private RelationService relationService;
     @Resource
     private Cache<String, FeedPageResponse> feedMineCache;
     private final HotKeyDetector hotKey;
@@ -54,7 +64,6 @@ public class KnowPostFeedServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPo
      */
     @Override
     public FeedPageResponse getPublicFeed(int page, int size, Long userId) {
-        //todo 后续优化
         int safeSize = Math.min(Math.max(size, 1), 50);
         int safePage = Math.max(page, 1);
         // 构建缓存 key
@@ -71,11 +80,9 @@ public class KnowPostFeedServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPo
             local.items().forEach(item -> recordItemHotKey(item.id()));
 //            打印日志
             log.info("feed.public source=local localPageKey={} page={} size={}", localPageKey, safePage, safeSize);
-            // todo 对返回列表中的每个条目进行内容填充
-//            List<FeedItemResponse> enrichedLocal = enrich(local.items(), userId);
+            List<FeedItemResponse> enrichedLocal = enrichedLocals(local.items(), userId);
 
-//            return new FeedPageResponse(enrichedLocal, local.page(), local.size(), local.hasMore());
-            return local;
+            return new FeedPageResponse(enrichedLocal, local.page(), local.size(), local.hasMore());
 
         }
 
@@ -173,6 +180,47 @@ public class KnowPostFeedServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPo
 
     }
 
+    private List<FeedItemResponse> enrichedLocals(List<FeedItemResponse> items, Long userId) {
+
+        // 1. 提取所有 ID
+        List<String> ids = items.stream().map(FeedItemResponse::id).collect(Collectors.toList());
+
+        // 2. 批量获取计数
+        Map<String, Map<String, Long>> countsBatch = counterService.getCountsBatch("knowpost", ids, List.of("like", "fav"));
+        // 3. 构建增强后的列表
+        List<FeedItemResponse> enrichedItems = new ArrayList<>();
+
+
+        for (FeedItemResponse item : items) {
+            // 安全地获取计数，防止 NPE
+            Map<String, Long> counts = countsBatch.getOrDefault(item.id(), Collections.emptyMap());
+            Long likeCount = counts.getOrDefault("like", 0L);
+            Long favCount = counts.getOrDefault("fav", 0L);
+            boolean faved = counterService.isFaved("knowpost", item.id(), userId);
+            boolean liked = counterService.isLiked("knowpost", item.id(), userId);
+// 4. 如果是 Record，需要创建新对象；如果是普通类且有 setter，则使用 setter
+            // 假设 FeedItemResponse 是 Record，我们需要用新的计数值重建它
+            // 注意：这里需要根据你 FeedItemResponse 的实际构造函数参数进行调整
+            FeedItemResponse enrichedItem = new FeedItemResponse(
+                item.id(),
+                item.title(),
+                item.description(),
+                item.coverImage(),
+                item.tags(),
+                item.authorAvatar(),
+                item.authorNickname(),
+                item.tagJson(),
+                likeCount, // 更新点赞数
+                favCount,  // 更新收藏数
+                liked,
+                faved,
+                item.isTop()
+                );
+            enrichedItems.add(enrichedItem);
+        }
+        return enrichedItems;
+    }
+
 
     /**
      * 将数据库行映射为响应条目。
@@ -191,14 +239,16 @@ public class KnowPostFeedServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPo
             List<String> imgs = JSONUtil.toList(r.getImgUrls(), String.class);
 
             String cover = imgs.isEmpty() ? null : imgs.get(0);
-            //todo 待后续完成 计数系统
 
-//            Map<String, Long> counts = counterService.getCounts("zhiguang/nauy/knowpost", String.valueOf(r.getId()), List.of("like", "fav"));
-//            Long likeCount = counts.getOrDefault("like", 0L);
-//            Long favoriteCount = counts.getOrDefault("fav", 0L);
-//
-//            Boolean liked = userIdNullable != null && counterService.isLiked("zhiguang/nauy/knowpost", String.valueOf(r.getId()), userIdNullable);
-//            Boolean faved = userIdNullable != null && counterService.isFaved("zhiguang/nauy/knowpost", String.valueOf(r.getId()), userIdNullable);
+            Map<String, Long> counts = counterService.getCounts("knowpost", String.valueOf(r.getId()), List.of("like", "fav"));
+            Long likeCount = counts.get("like");
+            Long favCount = counts.get("fav");
+            ThrowUtils.throwIf(likeCount == null, ErrorCode.OPERATION_ERROR);
+            ThrowUtils.throwIf(favCount == null, ErrorCode.OPERATION_ERROR);
+
+
+            Boolean liked = userIdNullable != null && counterService.isLiked("knowpost", String.valueOf(r.getId()), userIdNullable);
+            Boolean faved = userIdNullable != null && counterService.isFaved("knowpost", String.valueOf(r.getId()), userIdNullable);
             Boolean isTop = includeIsTop ? r.getIsTop() : null;
 
             items.add(new FeedItemResponse(
@@ -210,10 +260,10 @@ public class KnowPostFeedServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPo
                 r.getAuthorAvatar(),
                 r.getAuthorNickname(),
                 r.getAuthorTagJson(),
-                null,
-                null,
-                null,
-                null,
+                likeCount,
+                favCount,
+                liked,
+                faved,
                 isTop
             ));
         }
@@ -314,7 +364,7 @@ public class KnowPostFeedServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPo
         List<String> itemJsons = redis.opsForValue().multiGet(itemKeys);
         List<FeedItemResponse> items = new ArrayList<>(idList.size());
 //         如果任何一个文章详情缺失，整个页面缓存失效，回源
-        if ( itemJsons.size() != idList.size() || idList.isEmpty()) return null;
+        if (itemJsons.size() != idList.size() || idList.isEmpty()) return null;
         if (itemJsons.stream().anyMatch(json -> json == null || json.isBlank())) {
             return null;
         }
@@ -372,8 +422,7 @@ public class KnowPostFeedServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPo
                     hotKey.record(key);
                     maybeExtendTtlMine(key);
                     log.info("feed.mine source=page key={} page={} size={} user={}", key, safePage, safeSize, userId);
-                    //todo 待完成fav 和 liked的属性填充
-//                    List<FeedItemResponse> enriched = enrich(cachedResp.items(), userId);
+                    List<FeedItemResponse> enriched = enrichedLocals(cachedResp.items(), userId);
 
                     return new FeedPageResponse(cachedResp.items(), cachedResp.page(), cachedResp.size(), cachedResp.hasMore());
                 }

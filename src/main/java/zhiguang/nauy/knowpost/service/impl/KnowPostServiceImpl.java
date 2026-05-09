@@ -15,6 +15,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import zhiguang.nauy.cache.config.HotKeyDetector;
+import zhiguang.nauy.counter.service.CounterService;
 import zhiguang.nauy.exception.BusinessException;
 import zhiguang.nauy.exception.ErrorCode;
 import zhiguang.nauy.exception.ThrowUtils;
@@ -26,6 +27,7 @@ import zhiguang.nauy.knowpost.domain.id.SnowflakeIdGenerator;
 import zhiguang.nauy.knowpost.mapper.KnowPostsMapper;
 import zhiguang.nauy.knowpost.service.KnowPostFeedService;
 import zhiguang.nauy.knowpost.service.KnowPostsService;
+import zhiguang.nauy.relation.service.RelationService;
 import zhiguang.nauy.storage.OssStorageService;
 import zhiguang.nauy.user.domain.User;
 import zhiguang.nauy.user.service.UserService;
@@ -33,6 +35,7 @@ import zhiguang.nauy.user.service.UserService;
 import java.time.Duration;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -57,6 +60,10 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
     @Resource
     private KnowPostFeedService knowPostFeedService;
 
+    @Resource
+    private CounterService counterService;
+    @Resource
+    private RelationService relationService;
     @Resource
     private ObjectMapper objectMapper;
     @Resource
@@ -338,6 +345,7 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
 
         // ========== 第三步：SingleFlight 防止缓存击穿 ==========
         // 对同一个 pageKey 加锁，防止高并发下大量请求同时打到数据库
+//：computeIfAbsent = "如果没找到就创建一个，找到了就直接用"，保证同一 key 只有一个锁对象
         Object lock = singleFlight.computeIfAbsent(pageKey, k -> new Object());
         synchronized (lock) {
             try {
@@ -372,8 +380,16 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
                 }
 
                 // ========== 第六步：组装响应对象 ==========
-                // TODO: 后续补充实时数据（点赞数、收藏数、用户互动状态等）
-                KnowPostDetailResponse response = fillKnowPostDetailResponse(row, null, null, null, null);
+                Map<String, Long> map = counterService.getCounts("knowPost", String.valueOf(id), List.of("like", "fav"));
+                Long likeCount   = map.get("like");
+                ThrowUtils.throwIf(likeCount == null, ErrorCode.OPERATION_ERROR);
+
+                Long favCount = map.get("fav");
+                ThrowUtils.throwIf(favCount == null, ErrorCode.OPERATION_ERROR);
+
+                boolean isFaved = counterService.isFaved("knowPost", String.valueOf(id), currentUserIdNullable);
+                boolean isLiked = counterService.isLiked("knowPost", String.valueOf(id), currentUserIdNullable);
+                KnowPostDetailResponse response = fillKnowPostDetailResponse(row,likeCount , favCount, isLiked, isFaved);
                 return response;
 
             } finally {
@@ -385,11 +401,22 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
 
     /**
      * 尝试处理缓存命中
-     * @param cached
-     * @param id
-     * @param pageKey
-
-     * @return
+     * <p>在三级缓存架构中，当 L2(Redis) 缓存查询返回数据时，调用此方法处理缓存命中的逻辑。</p>
+     * <p>核心职责：</p>
+     * <ul>
+     *   <li>处理空值缓存（NULL），防止缓存穿透</li>
+     *   <li>反序列化 Redis 中的 JSON 字符串为响应对象</li>
+     *   <li>回填 L1(Caffeine) 缓存，加速后续本地访问</li>
+     *   <li>记录内容热度并动态延长缓存 TTL</li>
+     * </ul>
+     *
+     * @param cached    Redis 缓存中获取的原始字符串值（可能为 null、"NULL" 或 JSON 数据）
+     * @param id        知文ID，用于热度统计和日志记录
+     * @param pageKey   缓存键（格式：knowPost:detail:{id}:v{version}）
+     * @param uid       当前用户ID（暂未使用，预留用于后续实时数据叠加）
+     * @param sourceLog 日志来源标识，用于区分缓存命中来源（如 "page"、"page(after-flight)"）
+     * @return 缓存命中时返回反序列化后的响应对象；缓存未命中或反序列化失败时返回 null
+     * @throws BusinessException 当命中空值缓存（"NULL"）时抛出 NOT_FOUND 异常
      */
     private KnowPostDetailResponse tryProcessCacheHit(String cached, long id, String pageKey, Long uid, String sourceLog) {
 //        0.校验参数
@@ -412,15 +439,67 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
             recordHotKeyAndExtendTtl(id, pageKey);
             log.info("detail source={} key={}", sourceLog, pageKey);
 
-            // todo 后续完成5. 叠加实时数据（计数与用户状态）并返回
-//            return enrichDetailResponse(base, uid, true);
-            return bean;
+
+            return enrichDetailResponse(bean, uid, true);
+//            return bean;
         } catch (Exception ignored) {
             // 反序列化失败等异常情况，视为未命中，回源修复
+            //todo
             return null;
         }
 
     }
+
+    /**
+     * 丰富详情响应：叠加实时计数与用户状态。
+     *
+     * @param base 基础响应对象（来自缓存或 DB）
+     * @param uid 当前用户 ID
+     * @param refreshCounts 是否需要从 Counter1Service 刷新计数（缓存命中时需要，DB 回源时不需要）
+     * @return 叠加了最新状态的响应对象
+     */
+    private KnowPostDetailResponse enrichDetailResponse(KnowPostDetailResponse base, Long uid, boolean refreshCounts) {
+        Long likeCount = base.likeCount();
+        Long favoriteCount = base.favoriteCount();
+
+        // 1. 刷新计数（仅在走缓存时执行）
+        // 因为缓存中的计数可能是旧的，权威计数在 CounterService (Redis SDS)
+        if (refreshCounts) {
+            Map<String, Long> counts = counterService.getCounts("knowpost", base.id(), List.of("like", "fav"));
+            if (counts != null) {
+                likeCount = counts.getOrDefault("like", likeCount == null ? 0L : likeCount);
+                favoriteCount = counts.getOrDefault("fav", favoriteCount == null ? 0L : favoriteCount);
+            }
+        }
+
+        // 2. 获取用户维度的状态（是否已点赞/收藏）
+        // 这部分数据是个性化的，不能存入公共缓存
+        Boolean liked = uid != null && counterService.isLiked("knowpost", base.id(), uid);
+        Boolean faved = uid != null && counterService.isFaved("knowpost", base.id(), uid);
+
+        // 3. 构造新的 Record 对象返回
+        return new KnowPostDetailResponse(
+            base.id(),
+            base.title(),
+            base.description(),
+            base.contentUrl(),
+            base.images(),
+            base.tags(),
+            base.authorId(),
+            base.authorAvatar(),
+            base.authorNickname(),
+            base.authorTagJson(),
+            likeCount,
+            favoriteCount,
+            liked,
+            faved,
+            base.isTop(),
+            base.visible(),
+            base.type(),
+            base.publishTime()
+        );
+    }
+
 
     private KnowPostDetailResponse fillKnowPostDetailResponse(KnowPostDetailRow row,Long likeCount,Long favoriteCount,Boolean liked ,Boolean faved ){
         List<String> images = JSONUtil.toList(row.getImgUrls(),String.class);
