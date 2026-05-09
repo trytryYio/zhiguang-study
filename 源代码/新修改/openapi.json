@@ -1,0 +1,677 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "知光接口文档",
+    "version": "v1.0",
+    "description": "ZhiGuang Knowledge Community API"
+  },
+  "servers": [
+    { "url": "http://localhost:8080", "description": "Local dev" }
+  ],
+  "paths": {
+    "/api/v1/auth/send-code": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "发送验证码",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SendCodeRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SendCodeResponse" } } } } }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "注册",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } } }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "登录",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } } }
+      }
+    },
+    "/api/v1/auth/token/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "刷新令牌",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TokenRefreshRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TokenResponse" } } } } }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "登出",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LogoutRequest" } } }
+        },
+        "responses": { "204": { "description": "成功，无内容" } }
+      }
+    },
+    "/api/v1/auth/password/reset": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "重置密码",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PasswordResetRequest" } } }
+        },
+        "responses": { "204": { "description": "成功，无内容" } }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "获取当前用户信息",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthUserResponse" } } } } }
+      }
+    },
+    "/api/v1/knowposts/drafts": {
+      "post": {
+        "tags": ["KnowPost"],
+        "summary": "创建草稿",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KnowPostDraftCreateResponse" } } } } }
+      }
+    },
+    "/api/v1/knowposts/{id}/content/confirm": {
+      "post": {
+        "tags": ["KnowPost"],
+        "summary": "确认内容上传",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KnowPostContentConfirmRequest" } } }
+        },
+        "responses": { "204": { "description": "成功" } }
+      }
+    },
+    "/api/v1/knowposts/{id}": {
+      "patch": {
+        "tags": ["KnowPost"],
+        "summary": "更新知文元数据",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KnowPostPatchRequest" } } }
+        },
+        "responses": { "204": { "description": "成功" } }
+      },
+      "delete": {
+        "tags": ["KnowPost"],
+        "summary": "删除知文",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "成功" } }
+      }
+    },
+    "/api/v1/knowposts/{id}/publish": {
+      "post": {
+        "tags": ["KnowPost"],
+        "summary": "发布知文",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "成功" } }
+      }
+    },
+    "/api/v1/knowposts/{id}/top": {
+      "patch": {
+        "tags": ["KnowPost"],
+        "summary": "设置置顶",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KnowPostTopPatchRequest" } } }
+        },
+        "responses": { "204": { "description": "成功" } }
+      }
+    },
+    "/api/v1/knowposts/{id}/visibility": {
+      "patch": {
+        "tags": ["KnowPost"],
+        "summary": "设置可见性",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KnowPostVisibilityPatchRequest" } } }
+        },
+        "responses": { "204": { "description": "成功" } }
+      }
+    },
+    "/api/v1/knowposts/feed": {
+      "get": {
+        "tags": ["KnowPost"],
+        "summary": "首页 Feed 列表",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeedPageResponse" } } } } }
+      }
+    },
+    "/api/v1/knowposts/mine": {
+      "get": {
+        "tags": ["KnowPost"],
+        "summary": "我的知文",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeedPageResponse" } } } } }
+      }
+    },
+    "/api/v1/knowposts/detail/{id}": {
+      "get": {
+        "tags": ["KnowPost"],
+        "summary": "知文详情",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KnowPostDetailResponse" } } } } }
+      }
+    },
+    "/api/v1/knowposts/description/suggest": {
+      "post": {
+        "tags": ["KnowPost"],
+        "summary": "AI 生成摘要",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "content": { "type": "string" } } } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "type": "object", "properties": { "description": { "type": "string" } } } } } } }
+      }
+    },
+    "/api/v1/storage/presign": {
+      "post": {
+        "tags": ["Storage"],
+        "summary": "获取预签名上传 URL",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StoragePresignRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StoragePresignResponse" } } } } }
+      }
+    },
+    "/api/v1/action/like": {
+      "post": {
+        "tags": ["Action"],
+        "summary": "点赞",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActionRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActionResponse" } } } } }
+      }
+    },
+    "/api/v1/action/unlike": {
+      "post": {
+        "tags": ["Action"],
+        "summary": "取消点赞",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActionRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActionResponse" } } } } }
+      }
+    },
+    "/api/v1/action/fav": {
+      "post": {
+        "tags": ["Action"],
+        "summary": "收藏",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActionRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActionResponse" } } } } }
+      }
+    },
+    "/api/v1/action/unfav": {
+      "post": {
+        "tags": ["Action"],
+        "summary": "取消收藏",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActionRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActionResponse" } } } } }
+      }
+    },
+    "/api/v1/counter/{etype}/{eid}": {
+      "get": {
+        "tags": ["Counter"],
+        "summary": "获取计数",
+        "parameters": [
+          { "name": "etype", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "eid", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "metrics", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CountsResponse" } } } } }
+      }
+    },
+    "/api/v1/relation/follow": {
+      "post": {
+        "tags": ["Relation"],
+        "summary": "关注",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "toUserId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "type": "boolean" } } } } }
+      }
+    },
+    "/api/v1/relation/unfollow": {
+      "post": {
+        "tags": ["Relation"],
+        "summary": "取消关注",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "toUserId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "type": "boolean" } } } } }
+      }
+    },
+    "/api/v1/relation/status": {
+      "get": {
+        "tags": ["Relation"],
+        "summary": "查询关系状态",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "toUserId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RelationStatusResponse" } } } } }
+      }
+    },
+    "/api/v1/relation/following": {
+      "get": {
+        "tags": ["Relation"],
+        "summary": "关注列表",
+        "parameters": [
+          { "name": "userId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ProfileResponse" } } } } } }
+      }
+    },
+    "/api/v1/relation/followers": {
+      "get": {
+        "tags": ["Relation"],
+        "summary": "粉丝列表",
+        "parameters": [
+          { "name": "userId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "cursor", "in": "query", "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ProfileResponse" } } } } } }
+      }
+    },
+    "/api/v1/relation/counter": {
+      "get": {
+        "tags": ["Relation"],
+        "summary": "用户计数",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "userId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RelationCountersResponse" } } } } }
+      }
+    },
+    "/api/v1/profile": {
+      "patch": {
+        "tags": ["Profile"],
+        "summary": "更新个人资料",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfilePatchRequest" } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfileResponse" } } } } }
+      }
+    },
+    "/api/v1/profile/avatar": {
+      "post": {
+        "tags": ["Profile"],
+        "summary": "上传头像",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" } } } } }
+        },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfileResponse" } } } } }
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "关键词搜索",
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "tags", "in": "query", "schema": { "type": "string" } },
+          { "name": "after", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SearchResponse" } } } } }
+      }
+    },
+    "/api/v1/search/suggest": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "搜索联想",
+        "parameters": [
+          { "name": "prefix", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuggestResponse" } } } } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "SendCodeRequest": {
+        "type": "object",
+        "required": ["identifierType", "identifier", "scene"],
+        "properties": {
+          "identifierType": { "type": "string", "enum": ["PHONE", "EMAIL"] },
+          "identifier": { "type": "string" },
+          "scene": { "type": "string", "enum": ["REGISTER", "LOGIN", "RESET_PASSWORD"] }
+        }
+      },
+      "SendCodeResponse": {
+        "type": "object",
+        "properties": {
+          "identifier": { "type": "string" },
+          "scene": { "type": "string" },
+          "expireSeconds": { "type": "integer" }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["identifierType", "identifier", "code"],
+        "properties": {
+          "identifierType": { "type": "string", "enum": ["PHONE", "EMAIL"] },
+          "identifier": { "type": "string" },
+          "code": { "type": "string" },
+          "password": { "type": "string" },
+          "agreeTerms": { "type": "boolean" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["identifierType", "identifier"],
+        "properties": {
+          "identifierType": { "type": "string", "enum": ["PHONE", "EMAIL"] },
+          "identifier": { "type": "string" },
+          "password": { "type": "string" },
+          "code": { "type": "string" }
+        }
+      },
+      "TokenRefreshRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": { "refreshToken": { "type": "string" } }
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": { "refreshToken": { "type": "string" } }
+      },
+      "PasswordResetRequest": {
+        "type": "object",
+        "required": ["identifierType", "identifier", "code", "newPassword"],
+        "properties": {
+          "identifierType": { "type": "string", "enum": ["PHONE", "EMAIL"] },
+          "identifier": { "type": "string" },
+          "code": { "type": "string" },
+          "newPassword": { "type": "string" }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "user": { "$ref": "#/components/schemas/AuthUserResponse" },
+          "token": { "$ref": "#/components/schemas/TokenResponse" }
+        }
+      },
+      "AuthUserResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "nickname": { "type": "string" },
+          "avatar": { "type": "string" },
+          "phone": { "type": "string" },
+          "zhId": { "type": "string" },
+          "birthday": { "type": "string", "format": "date" },
+          "school": { "type": "string" },
+          "bio": { "type": "string" },
+          "gender": { "type": "string" },
+          "tagJson": { "type": "string" }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": { "type": "string" },
+          "accessTokenExpiresAt": { "type": "string", "format": "date-time" },
+          "refreshToken": { "type": "string" },
+          "refreshTokenExpiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "KnowPostDraftCreateResponse": {
+        "type": "object",
+        "properties": { "id": { "type": "string" } }
+      },
+      "KnowPostContentConfirmRequest": {
+        "type": "object",
+        "required": ["objectKey", "etag", "size", "sha256"],
+        "properties": {
+          "objectKey": { "type": "string" },
+          "etag": { "type": "string" },
+          "size": { "type": "integer", "format": "int64" },
+          "sha256": { "type": "string" }
+        }
+      },
+      "KnowPostPatchRequest": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "tagId": { "type": "integer" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "imgUrls": { "type": "array", "items": { "type": "string" } },
+          "visible": { "type": "string", "enum": ["public", "private", "follower"] },
+          "isTop": { "type": "boolean" },
+          "description": { "type": "string" }
+        }
+      },
+      "KnowPostTopPatchRequest": {
+        "type": "object",
+        "required": ["isTop"],
+        "properties": { "isTop": { "type": "boolean" } }
+      },
+      "KnowPostVisibilityPatchRequest": {
+        "type": "object",
+        "required": ["visible"],
+        "properties": { "visible": { "type": "string", "enum": ["public", "private", "follower"] } }
+      },
+      "FeedPageResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/FeedItemResponse" } },
+          "page": { "type": "integer" },
+          "size": { "type": "integer" },
+          "hasMore": { "type": "boolean" }
+        }
+      },
+      "FeedItemResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "coverImage": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "authorAvatar": { "type": "string" },
+          "authorNickname": { "type": "string" },
+          "tagJson": { "type": "string" },
+          "likeCount": { "type": "integer", "format": "int64" },
+          "favoriteCount": { "type": "integer", "format": "int64" },
+          "liked": { "type": "boolean" },
+          "faved": { "type": "boolean" },
+          "isTop": { "type": "boolean" }
+        }
+      },
+      "KnowPostDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "contentUrl": { "type": "string" },
+          "images": { "type": "array", "items": { "type": "string" } },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "authorId": { "type": "string" },
+          "authorAvatar": { "type": "string" },
+          "authorNickname": { "type": "string" },
+          "authorTagJson": { "type": "string" },
+          "likeCount": { "type": "integer", "format": "int64" },
+          "favoriteCount": { "type": "integer", "format": "int64" },
+          "liked": { "type": "boolean" },
+          "faved": { "type": "boolean" },
+          "isTop": { "type": "boolean" },
+          "visible": { "type": "string" },
+          "type": { "type": "string" },
+          "publishTime": { "type": "string", "format": "date-time" }
+        }
+      },
+      "StoragePresignRequest": {
+        "type": "object",
+        "required": ["postId", "contentType", "scene"],
+        "properties": {
+          "postId": { "type": "string" },
+          "contentType": { "type": "string" },
+          "scene": { "type": "string", "enum": ["knowpost_content", "knowpost_image"] },
+          "ext": { "type": "string" }
+        }
+      },
+      "StoragePresignResponse": {
+        "type": "object",
+        "properties": {
+          "objectKey": { "type": "string" },
+          "putUrl": { "type": "string" },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+          "expiresIn": { "type": "integer" }
+        }
+      },
+      "ActionRequest": {
+        "type": "object",
+        "required": ["entityType", "entityId"],
+        "properties": {
+          "entityType": { "type": "string" },
+          "entityId": { "type": "string" }
+        }
+      },
+      "ActionResponse": {
+        "type": "object",
+        "properties": {
+          "changed": { "type": "boolean" },
+          "liked": { "type": "boolean" },
+          "faved": { "type": "boolean" }
+        }
+      },
+      "CountsResponse": {
+        "type": "object",
+        "properties": {
+          "entityType": { "type": "string" },
+          "entityId": { "type": "string" },
+          "counts": { "type": "object", "additionalProperties": { "type": "integer", "format": "int64" } }
+        }
+      },
+      "RelationStatusResponse": {
+        "type": "object",
+        "properties": {
+          "following": { "type": "boolean" },
+          "followedBy": { "type": "boolean" },
+          "mutual": { "type": "boolean" }
+        }
+      },
+      "RelationCountersResponse": {
+        "type": "object",
+        "properties": {
+          "followings": { "type": "integer" },
+          "followers": { "type": "integer" },
+          "posts": { "type": "integer" },
+          "likedPosts": { "type": "integer" },
+          "favedPosts": { "type": "integer" }
+        }
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "nickname": { "type": "string" },
+          "avatar": { "type": "string" },
+          "bio": { "type": "string" },
+          "zgId": { "type": "string" },
+          "gender": { "type": "string" },
+          "birthday": { "type": "string", "format": "date" },
+          "school": { "type": "string" },
+          "phone": { "type": "string" },
+          "email": { "type": "string" },
+          "tagJson": { "type": "string" }
+        }
+      },
+      "ProfilePatchRequest": {
+        "type": "object",
+        "properties": {
+          "nickname": { "type": "string" },
+          "bio": { "type": "string" },
+          "gender": { "type": "string" },
+          "birthday": { "type": "string", "format": "date" },
+          "zgId": { "type": "string" },
+          "school": { "type": "string" },
+          "tagJson": { "type": "string" }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/FeedItemResponse" } },
+          "nextAfter": { "type": "string" },
+          "hasMore": { "type": "boolean" }
+        }
+      },
+      "SuggestResponse": {
+        "type": "object",
+        "properties": {
+          "suggestions": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
