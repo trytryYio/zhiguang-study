@@ -9,5 +9,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public final class OutboxTopics {
 
-    private  final static String PREFIX = "canal-outbox";
+ public   final static String PREFIX = "canal-outbox";
 }
