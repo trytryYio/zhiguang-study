@@ -17,4 +17,8 @@
         id,aggregate_type,aggregate_id,
         type,payload,created_at
     </sql>
+    <insert id="insert">
+        INSERT INTO outbox (id, aggregate_type, aggregate_id, type, payload, created_at)
+        VALUES (#{id}, #{aggregateType}, #{aggregateId}, #{type}, #{payload}, NOW())
+    </insert>
 </mapper>
