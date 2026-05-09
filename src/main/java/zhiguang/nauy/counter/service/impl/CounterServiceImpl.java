@@ -50,7 +50,7 @@ public class CounterServiceImpl implements CounterService {
     private final ApplicationEventPublisher eventPublisher;
     private final RedissonClient redisson;
 
-    public CounterServiceImpl(StringRedisTemplate redis, CounterEventProducer eventProducer, ApplicationEventPublisher eventPublisher, RedissonClient redisson, SdsUtils sdsUtils) {
+    public CounterServiceImpl(StringRedisTemplate redis, CounterEventProducer eventProducer, ApplicationEventPublisher eventPublisher, RedissonClient redisson) {
         this.redis = redis;
         this.eventProducer = eventProducer;
         this.eventPublisher = eventPublisher;

@@ -3,6 +3,7 @@ package zhiguang.nauy.relation.service.impl;
 import cn.hutool.json.JSONUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.annotation.Resource;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 @Service
 
 public class RelationServiceImpl implements RelationService {
+    @Lazy
     @Resource
     private UserCounterService userCounterService;
     @Resource

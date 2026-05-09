@@ -3,7 +3,6 @@ package zhiguang.nauy.config;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
@@ -17,7 +16,6 @@ import java.util.concurrent.TimeUnit;
  *   <li>过期策略：写入后 5 分钟自动过期</li>
  * </ul>
  */
-@Configuration
 @Deprecated
 public class CaffeineConfig {
 
