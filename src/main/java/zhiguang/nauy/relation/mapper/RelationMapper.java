@@ -103,5 +103,36 @@ public interface RelationMapper {
      */
     @Select("  SELECT COUNT(*) FROM follower WHERE to_user_id=#{userId} AND rel_status=1")
     int countFollowerActive(long userId);
+
+
+
+
+
+    /**
+     * 写入粉丝关系（异步消费时使用）。
+     * @param id 主键ID
+     * @param toUserId 被关注者ID
+     * @param fromUserId 关注者ID
+     * @param relStatus 关系状态
+     * @return 影响行数
+     */
+    @Insert("INSERT INTO follower(id, to_user_id, from_user_id, rel_status, created_at, updated_at) " +
+        "VALUES(#{id}, #{toUserId}, #{fromUserId}, #{relStatus}, NOW(3), NOW(3)) " +
+        "ON DUPLICATE KEY UPDATE rel_status=VALUES(rel_status), updated_at=VALUES(updated_at)")
+    int insertFollower(@Param("id") Long id,
+                       @Param("toUserId") Long toUserId,
+                       @Param("fromUserId") Long fromUserId,
+                       @Param("relStatus") Integer relStatus);
+
+    /**
+     * 取消粉丝关系（异步消费时使用）。
+     * @param toUserId 被关注者ID
+     * @param fromUserId 关注者ID
+     * @return 影响行数
+     */
+    @Update("UPDATE follower SET rel_status=0, updated_at=NOW(3) " +
+        "WHERE to_user_id=#{toUserId} AND from_user_id=#{fromUserId}")
+    int cancelFollower(@Param("toUserId") Long toUserId,
+                       @Param("fromUserId") Long fromUserId);
 }
 
