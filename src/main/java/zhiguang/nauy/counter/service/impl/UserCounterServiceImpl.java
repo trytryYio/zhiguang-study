@@ -7,6 +7,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import zhiguang.nauy.counter.dto.UserCounterDTO;
 import zhiguang.nauy.counter.schema.CounterSchema;
@@ -51,8 +52,16 @@ public class UserCounterServiceImpl implements UserCounterService {
     @Resource
     private RedissonClient redisson;
 
+    private final DefaultRedisScript<Long> incrScript;
+
     // 用户计数SDS结构长度
-    int expectedLen = CounterSchema.SCHEMA_LEN * CounterSchema.BYTES_PER_METRIC;
+    int expectedLen = UserCounterSchema.SCHEMA_LEN * UserCounterSchema.BYTES_PER_METRIC;
+
+    public UserCounterServiceImpl() {
+        this.incrScript = new DefaultRedisScript<>();
+        this.incrScript.setResultType(Long.class);
+        this.incrScript.setScriptText(INCR_FIELD_LUA);
+    }
 
     /**
      * 增加用户关注数。
@@ -185,63 +194,51 @@ public class UserCounterServiceImpl implements UserCounterService {
     }
 
     /**
-     * 原子增加用户计数字段。
+     * 原子增加用户计数字段（Lua 脚本，单次 Redis 交互）。
      *
      * @param userId     用户ID
-     * @param fieldIndex 字段索引（0=关注数, 1=粉丝数, 2=发帖数, 3=获赞数, 4=获收藏数）
+     * @param fieldIndex 字段索引（0-based: 0=关注数, 1=粉丝数, 2=发帖数, 3=获赞数, 4=获收藏数）
      * @param delta      增量值
      */
     private void incrementUserCounterField(long userId, int fieldIndex, int delta) {
-        String sdsKey = UserCounterKeys.sdsKey(userId);
-        synchronized (this) {
-            byte[] raw = SdsUtils.getRaw(redis, sdsKey);
-            //字节长度
-            if (raw == null || raw.length != expectedLen) {
-                log.warn("用户计数SDS结构异常，触发重建: userId={}, 当前长度={}", userId, raw == null ? 0 : raw.length);
-
-                // 触发重建
-                rebuildAllCounters(userId);
-
-                // 重建后重新读取
-                raw = SdsUtils.getRaw(redis, sdsKey);
-
-                // 如果重建后仍然异常，初始化为空结构
-                if (raw == null || raw.length != expectedLen) {
-                    log.error("重建后SDS仍然异常，初始化为空结构: userId={}", userId);
-                    raw = new byte[expectedLen];
-                }
-            }
-
-            //不需要重建
-
-            //计算新值
-            //偏移量
-            int offset = fieldIndex * UserCounterSchema.BYTES_PER_METRIC;
-            //当前值
-            long currentValue = SdsUtils.readIntBE(raw, offset, UserCounterSchema.BYTES_PER_METRIC);
-            long newValue = currentValue + delta;
-
-            // 边界检查：
-            //下溢
-            if (newValue < 0) {
-                newValue = 0;
-                log.warn("Invalid delta for user counter field: {}", delta);
-            }
-            //上溢（根据字节数）
-            long maxValue = (1L << (8 * 8)) - 1;  // 1L << 64
-            if (newValue > maxValue) {
-                newValue = Integer.MAX_VALUE;
-                log.warn("Delta too large for user counter field: {}", delta);
-            }
-            // 步骤7：写入新值
-            SdsUtils.writeIntBE(raw, offset, newValue, UserCounterSchema.BYTES_PER_METRIC);
-
-            // 步骤8：保存回 Redis
-            SdsUtils.setRaw(redis, sdsKey, raw);
-            log.debug("用户计数更新成功: userId={}, fieldIndex={}, oldValue={}, newValue={}",
-                userId, fieldIndex, currentValue, newValue);
-        }
-
-
+        String key = UserCounterKeys.sdsKey(userId);
+        // Lua 脚本使用 1-based 索引，所以 +1
+        redis.execute(incrScript, List.of(key),
+            String.valueOf(UserCounterSchema.SCHEMA_LEN),
+            String.valueOf(UserCounterSchema.BYTES_PER_METRIC),
+            String.valueOf(fieldIndex + 1),
+            String.valueOf(delta));
     }
+
+    /**
+     * 用户维度计数原子折叠 Lua 脚本（1-based 索引）。
+     * <p>在 Redis 内部原子执行 GET → 修改指定字段 → SET，避免 GET+SET 竞态。</p>
+     */
+    private static final String INCR_FIELD_LUA = """
+        local cntKey = KEYS[1]
+        local schemaLen = tonumber(ARGV[1])
+        local fieldSize = tonumber(ARGV[2])
+        local idx = tonumber(ARGV[3])
+        local delta = tonumber(ARGV[4])
+        local function read32be(s, off)
+          local b = {string.byte(s, off+1, off+4)}
+          local n = 0
+          for i=1,4 do n = n * 256 + b[i] end
+          return n
+        end
+        local function write32be(n)
+          local t = {}
+          for i=4,1,-1 do t[i] = n % 256; n = math.floor(n/256) end
+          return string.char(unpack(t))
+        end
+        local cnt = redis.call('GET', cntKey)
+        if not cnt then cnt = string.rep(string.char(0), schemaLen * fieldSize) end
+        local off = (idx - 1) * fieldSize
+        local v = read32be(cnt, off) + delta
+        if v < 0 then v = 0 end
+        local seg = write32be(v)
+        cnt = string.sub(cnt, 1, off) .. seg .. string.sub(cnt, off+fieldSize+1)
+        redis.call('SET', cntKey, cnt)
+        return 1
+        """;
 }

@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS users (
                                      UNIQUE KEY uk_users_phone (phone),
                                      UNIQUE KEY uk_users_email (email),
                                      UNIQUE KEY uk_users_zg_id (zg_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 CREATE TABLE IF NOT EXISTS login_logs (
                                           id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '登录日志ID',
@@ -104,9 +104,9 @@ CREATE TABLE IF NOT EXISTS login_logs (
                                           user_agent VARCHAR(512) NULL COMMENT '用户代理字符串',
                                           status VARCHAR(16) NOT NULL COMMENT '登录状态',
                                           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                          PRIMARY KEY (id),
-                                          KEY ix_login_logs_user_created_at (user_id, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                                           PRIMARY KEY (id),
+                                           KEY ix_login_logs_user_created_at (user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='登录日志表';
 
 -- 知文（KnowPost）主表
 -- 说明：
@@ -142,8 +142,8 @@ CREATE TABLE IF NOT EXISTS know_posts (
                                           KEY ix_know_posts_tag_ct (tag_id, create_time),
                                           KEY ix_know_posts_top_ct (is_top, create_time),
                                           KEY ix_know_posts_creator_status_pub (creator_id, status, publish_time),
-                                          CONSTRAINT fk_know_posts_creator FOREIGN KEY (creator_id) REFERENCES users(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                                           CONSTRAINT fk_know_posts_creator FOREIGN KEY (creator_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知文（知识文章）主表';
 
 CREATE TABLE IF NOT EXISTS outbox (
                                       id BIGINT UNSIGNED NOT NULL COMMENT 'Outbox事件ID',
@@ -153,9 +153,9 @@ CREATE TABLE IF NOT EXISTS outbox (
                                       payload JSON NOT NULL COMMENT '事件负载数据',
                                       created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
                                       PRIMARY KEY (id),
-                                      KEY ix_outbox_agg (aggregate_type, aggregate_id),
-                                      KEY ix_outbox_ct (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                                       KEY ix_outbox_agg (aggregate_type, aggregate_id),
+                                       KEY ix_outbox_ct (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Outbox事件表（事务性事件存储）';
 
 CREATE TABLE IF NOT EXISTS following (
                                          id BIGINT UNSIGNED NOT NULL COMMENT '关注关系ID',
@@ -168,9 +168,7 @@ CREATE TABLE IF NOT EXISTS following (
                                          UNIQUE KEY uk_from_to (from_user_id, to_user_id),
                                          KEY idx_from_created (from_user_id, created_at, to_user_id, rel_status),
                                          KEY idx_to (to_user_id, from_user_id, rel_status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS follower (
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='关注关系表（我关注的人）';
                                         id BIGINT UNSIGNED NOT NULL COMMENT '粉丝关系ID',
                                         to_user_id BIGINT UNSIGNED NOT NULL COMMENT '被关注者用户ID',
                                         from_user_id BIGINT UNSIGNED NOT NULL COMMENT '关注者用户ID',
@@ -179,7 +177,10 @@ CREATE TABLE IF NOT EXISTS follower (
                                         updated_at DATETIME(3) NOT NULL COMMENT '更新时间',
                                         PRIMARY KEY (id),
                                         UNIQUE KEY uk_to_from (to_user_id, from_user_id),
-                                        KEY idx_to_created (to_user_id, created_at, from_user_id, rel_status),
-                                        KEY idx_from (from_user_id, to_user_id, rel_status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                                         KEY idx_to_created (to_user_id, created_at, from_user_id, rel_status),
+                                         KEY idx_from (from_user_id, to_user_id, rel_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='粉丝关系表（关注我的人）';
+
+-- 为 know_posts 表添加软删除字段（配合 @TableLogic 使用）
+ALTER TABLE know_posts ADD COLUMN is_delete TINYINT(1) NOT NULL DEFAULT 0 COMMENT '软删除标记（0:正常 1:已删除）' AFTER publish_time;
 

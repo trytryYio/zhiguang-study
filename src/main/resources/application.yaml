@@ -1,7 +1,6 @@
 server:
   port: 8080
-  profiles:
-    active: test
+
 spring:
   application:
     name: zhiguang-study

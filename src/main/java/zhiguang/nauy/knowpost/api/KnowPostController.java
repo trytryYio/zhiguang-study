@@ -1,9 +1,7 @@
 package zhiguang.nauy.knowpost.api;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.tomcat.util.http.ResponseUtil;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -14,7 +12,6 @@ import zhiguang.nauy.common.ResultUtils;
 import zhiguang.nauy.exception.ErrorCode;
 import zhiguang.nauy.exception.ThrowUtils;
 import zhiguang.nauy.knowpost.api.dto.*;
-import zhiguang.nauy.knowpost.domain.KnowPosts;
 import zhiguang.nauy.knowpost.service.KnowPostFeedService;
 import zhiguang.nauy.knowpost.service.KnowPostsService;
 
@@ -59,7 +56,7 @@ public class KnowPostController {
      */
     @PostMapping("/{id}/content/confirm")
 
-    public BaseResponse confirmContent(@PathVariable("id")long id,
+    public BaseResponse<Void> confirmContent(@PathVariable("id")long id,
                                              @RequestBody @Valid KnowPostContentConfirmRequest request
             , @AuthenticationPrincipal Jwt jwt) {
 //        0.通过jwt 获取用户ID

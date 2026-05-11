@@ -62,10 +62,10 @@ public class CanalOutboxConsumer {
                 if (payload == null) {
                     continue;
                 }
-// 3. 转为字符串
+            // 3. 转为字符串
                 String payloadJson = payload.toString();
 
-// 4. 反序列化为 RelationEvent 对象
+                // 4. 反序列化为 RelationEvent 对象
                 RelationEvent event = JSONUtil.toBean(payloadJson, RelationEvent.class);
                 // 5. 处理
                 processor.process(event);
