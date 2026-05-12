@@ -84,7 +84,7 @@ canal:
   destination: example
   username: "root"
   password: "123123"
-  filter: zhiguang\.outbox
+  filter: zhiguang\.outbox |zhiguang\.know_posts
   batchSize: 1000
   intervalMs: 1000
 
