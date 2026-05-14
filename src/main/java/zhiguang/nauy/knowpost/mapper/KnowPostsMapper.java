@@ -38,6 +38,10 @@ public interface KnowPostsMapper extends BaseMapper<KnowPosts> {
         " order by p.is_top desc ,p.publish_time desc" +
         " limit #{limit} offset #{offset}")
     List<KnowPostFeedRow> listMyPublished(@Param("creatorId") long userId, @Param("limit") int limit, @Param("offset") int offset);
+
+
+    @Select("select * from know_posts where id=#{postId}")
+    KnowPosts findById(long postId);
 }
 
 

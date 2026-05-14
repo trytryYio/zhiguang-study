@@ -45,9 +45,9 @@ public class SearchController {
 
     @Operation(summary = "联想建议")
     @GetMapping("/suggest")
-    public List<String> suggest(
+    public BaseResponse<List<String> > suggest(
         @RequestParam("q") String prefix,
         @RequestParam(value = "size", defaultValue = "10") int size) {
-        return searchService.suggest(prefix, size);
+        return ResultUtils.success(searchService.suggest(prefix, size));
     }
 }

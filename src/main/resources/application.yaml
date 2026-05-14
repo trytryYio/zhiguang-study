@@ -131,10 +131,10 @@ logging:
     '[com.tongji]': DEBUG
 
 oss:
-  endpoint: oss-cn-beijing.aliyuncs.com
+  endpoint: oss-cn-shenzhen.aliyuncs.com
   access-key-id: ${OSS_ACCESS_KEY_ID}
   access-key-secret: ${OSS_ACCESS_KEY_SECRET}
-  bucket: zhiguangapp
+  bucket: project-oyy
   public-domain: ${OSS_PUBLIC_DOMAIN:}
   profile: "zhiguangapp"
   folder: avatars

@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import styles from "./LikeFavBar.module.css";
 import { useAuth } from "../../context/AuthContext";
 import { BookmarkIcon, HeartIcon } from "../icons/Icon";
+import { fav, like, unfav, unlike } from "../../api/actionController";
+import { counter } from "../../api/relationController";
 
 type LikeFavBarProps = {
   entityId: string;
@@ -34,12 +36,122 @@ const LikeFavBar = ({
   const [faved, setFaved] = useState<boolean>(initialState?.faved ?? false);
   const [loadingLike, setLoadingLike] = useState(false);
   const [loadingFav, setLoadingFav] = useState(false);
-  //todo
-  return (
-    <>
-      <div> 未完工</div>
-    </>
-  );
+    useEffect(() => {
+        let cancelled = false;
+        const run = async () => {
+            if (!fetchCounts) return;
+            if (!tokens?.accessToken) return; // 当前策略：需鉴权
+            try {
+                // @ts-ignore - counterParams 类型定义有误，实际应该接收 entityId 和 entityType
+                const resp = await counter({ entityId, entityType });
+                if (!cancelled) {
+                    // @ts-ignore - 返回类型定义可能不准确
+                    const like = resp.counts?.like ?? 0;
+                    // @ts-ignore - 返回类型定义可能不准确
+                    const fav = resp.counts?.fav ?? 0;
+                    setLikeCount(typeof like === "number" ? like : 0);
+                    setFavCount(typeof fav === "number" ? fav : 0);
+                }
+            } catch {
+                // 忽略计数加载错误，保持初值
+            }
+        };
+        run();
+        return () => {
+            cancelled = true;
+        };
+    }, [entityId, entityType, tokens?.accessToken, fetchCounts]);
+
+    // 当初始状态变更时，同步到本地状态（例如从详情或列表传入）
+    useEffect(() => {
+        if (typeof initialState?.liked !== "undefined") {
+            setLiked(!!initialState.liked);
+        }
+        if (typeof initialState?.faved !== "undefined") {
+            setFaved(!!initialState.faved);
+        }
+    }, [initialState?.liked, initialState?.faved]);
+
+    const mustLogin = () => {
+        navigate("/login", {state: {from: location.pathname}});
+    };
+
+    const onLikeClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation(); // 避免卡片 Link 导航
+        if (!tokens?.accessToken) {
+            mustLogin();
+            return;
+        }
+        if (loadingLike) return;
+        setLoadingLike(true);
+        try {
+            if (!liked) {
+                const resp = await like({ entityId, entityType });
+                setLiked(resp.liked);
+                if (resp.changed && resp.liked) setLikeCount((c) => c + 1);
+            } else {
+                const resp = await unlike({ entityId, entityType });
+                setLiked(resp.liked);
+                if (resp.changed && !resp.liked) setLikeCount((c) => Math.max(0, c - 1));
+            }
+        } catch {
+            // 可选：提示错误
+        } finally {
+            setLoadingLike(false);
+        }
+    };
+
+    const onFavClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!tokens?.accessToken) {
+            mustLogin();
+            return;
+        }
+        if (loadingFav) return;
+        setLoadingFav(true);
+        try {
+            if (!faved) {
+                const resp = await fav({ entityId, entityType });
+                setFaved(resp.faved);
+                if (resp.changed && resp.faved) setFavCount((c) => c + 1);
+            } else {
+                const resp = await unfav({ entityId, entityType });
+                setFaved(resp.faved);
+                if (resp.changed && !resp.faved) setFavCount((c) => Math.max(0, c - 1));
+            }
+        } catch {
+            // 可选：提示错误
+        } finally {
+            setLoadingFav(false);
+        }
+    };
+
+    return (
+        <div className={`${styles._bar} ${compact ? styles.compact : ""} ${className ?? ""}`.trim()}>
+            <button
+                type="button"
+                className={`${styles.btn} ${liked ? styles.liked : ""} ${loadingLike ? styles.disabled : ""}`}
+                onClick={onLikeClick}
+                aria-pressed={liked}
+                aria-label={liked ? "取消点赞" : "点赞"}
+            >
+                <HeartIcon width={iconSize} height={iconSize}/>
+                <span className={styles.count}>{likeCount}</span>
+            </button>
+            <button
+                type="button"
+                className={`${styles.btn} ${faved ? styles.faved : ""} ${loadingFav ? styles.disabled : ""}`}
+                onClick={onFavClick}
+                aria-pressed={faved}
+                aria-label={faved ? "取消收藏" : "收藏"}
+            >
+                <BookmarkIcon width={iconSize} height={iconSize}/>
+                <span className={styles.count}>{favCount}</span>
+            </button>
+        </div>
+    );
 };
 
 export default LikeFavBar;

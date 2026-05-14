@@ -27,6 +27,7 @@ import zhiguang.nauy.knowpost.domain.id.SnowflakeIdGenerator;
 import zhiguang.nauy.knowpost.mapper.KnowPostsMapper;
 import zhiguang.nauy.knowpost.service.KnowPostFeedService;
 import zhiguang.nauy.knowpost.service.KnowPostsService;
+import zhiguang.nauy.outbox.mapper.OutboxMapper;
 import zhiguang.nauy.relation.service.RelationService;
 import zhiguang.nauy.storage.OssStorageService;
 import zhiguang.nauy.user.domain.User;
@@ -72,6 +73,8 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
     private SnowflakeIdGenerator snowflakeIdGenerator;
     @Resource
     private OssStorageService ossStorageService;
+    @Resource
+    private OutboxMapper outboxMapper;
 
     @Resource
     private HotKeyDetector hotKey;
@@ -149,7 +152,7 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
                 .set(KnowPosts::getContentSha256, sha256)
                 .set(KnowPosts::getContentUrl, ossStorageService.publicUrl(objectKey))
                 .set(KnowPosts::getUpdateTime, new Date());
-        this.updateById(knowPosts);
+        this.update(updateWrapper);
     }
 
 
@@ -192,10 +195,19 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
                 .set(KnowPosts::getImgUrls, imgJson)
                 .set(KnowPosts::getVisible, visible)
                 .set(KnowPosts::getDescription, description)
-                .set(KnowPosts::getIsTop, isTop)
+                .set(isTop != null, KnowPosts::getIsTop, isTop)
                 .set(KnowPosts::getUpdateTime, new Date());
         boolean update = this.update(updateWrapper);
         ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR);
+
+        // 元数据变更后写入 Outbox 事件，驱动搜索索引更新
+        try {
+            long outId = snowflakeIdGenerator.nextId();
+            String payload = objectMapper.writeValueAsString(Map.of("entity", "zhiguang/nauy/knowpost", "op", "upsert", "id", id));
+            outboxMapper.insert(outId, "zhiguang/nauy/knowpost", id, "KnowPostMetadataUpdated", payload);
+        } catch (Exception e) {
+            log.warn("Outbox event after metadata update failed, post {}: {}", id, e.getMessage());
+        }
 
     }
 
@@ -221,7 +233,8 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
 //        0.校验参数
         KnowPosts knowPosts = validteKnowPostAuth(creatorId, id);
 //        1.参数设置
-        knowPosts.setVisible("PUBLISHED");
+        knowPosts.setStatus("PUBLISHED");
+        knowPosts.setVideoUrl("public");
         knowPosts.setUpdateTime(new Date());
         knowPosts.setPublishTime(new Date());
 //        2.构造lambudaupdatewrapper
@@ -229,6 +242,15 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
         boolean update = this.update(knowPosts, updateWrapper);
 //        3.判断是否更新成功
         ThrowUtils.throwIf(!update, ErrorCode.BAD_REQUEST, "草稿不存在或无权限");
+
+        // 写入 Outbox 事件，驱动搜索索引增量更新
+        try {
+            long outId = snowflakeIdGenerator.nextId();
+            String payload = objectMapper.writeValueAsString(Map.of("entity", "zhiguang/nauy/knowpost", "op", "upsert", "id", id));
+            outboxMapper.insert(outId, "zhiguang/nauy/knowpost", id, "KnowPostPublished", payload);
+        } catch (Exception e) {
+            log.warn("Outbox event after publish failed, post {}: {}", id, e.getMessage());
+        }
 
     }
 
@@ -299,6 +321,16 @@ public class KnowPostServiceImpl extends ServiceImpl<KnowPostsMapper, KnowPosts>
         KnowPosts knowPosts = validteKnowPostAuth(creatorId, id);
         boolean b = this.removeById(knowPosts);
         ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR);
+
+        // 写入 Outbox 事件，驱动搜索索引软删
+        try {
+            long outId = snowflakeIdGenerator.nextId();
+            String payload = objectMapper.writeValueAsString(Map.of("entity", "zhiguang/nauy/knowpost", "op", "delete", "id", id));
+            outboxMapper.insert(outId, "zhiguang/nauy/knowpost", id, "KnowPostDeleted", payload);
+        } catch (Exception e) {
+            log.warn("Outbox event after delete failed, post {}: {}", id, e.getMessage());
+        }
+
     }
 
     /**

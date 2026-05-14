@@ -173,8 +173,8 @@ public class KnowPostController {
      * 知文详情（公开：published+public；非公开需作者本人）。
      */
     @GetMapping("/detail/{id}")
-    public BaseResponse<KnowPostDetailResponse > detail(@PathVariable("id") long id,
-                                         @AuthenticationPrincipal Jwt jwt) {
+    public BaseResponse<KnowPostDetailResponse > detail(@PathVariable("id") long id,@AuthenticationPrincipal Jwt jwt
+                                         ) {
         long userId = jwtService.extractUserId(jwt);
         ThrowUtils.throwIf(userId <=0 , ErrorCode.PARAMS_ERROR);
         KnowPostDetailResponse knowPostDetailResponse = service.getDetail(id, userId);

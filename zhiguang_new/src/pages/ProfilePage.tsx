@@ -38,25 +38,19 @@ const ProfilePage = () => {
 
   // 我的知文列表
   const [items, setItems] = useState<Array<API.FeedItemResponse>>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 抽取成单一函数，供首次加载与编辑动作后复用
   // 重新加载当前登录用户（"我"）的个人内容列表（例如文章、帖子等）
   const reloadMine = async () => {
-    if (!tokens?.accessToken) return; // 没有令牌
+    if (!tokens?.accessToken) return;
     setLoading(true);
     setError(null);
     try {
       const resp = await mine({ page: 1, size: 20 }, tokens.accessToken);
-      console.log("mine API response:", resp);
       setItems(resp?.items ?? []);
-      setHasMore(!!resp?.hasMore);
-      setPage(resp?.page ?? 1);
     } catch (err) {
-      console.error("mine API error:", err);
       const msg = err instanceof Error ? err.message : "加载失败";
       setError(`加载我的知文失败: ${msg}`);
     } finally {

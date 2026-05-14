@@ -162,6 +162,7 @@ public class CanalKafkaBridge implements SmartLifecycle {
                             // 捕获中断异常并恢复中断状态，确保线程能正确响应停止信号
                             Thread.currentThread().interrupt();
                         }
+                    } else {
                         //2.2 遍历message里面所有的entry
                         for (CanalEntry.Entry entry : message.getEntries()) {
                             //2.2.1 无关信息筛选

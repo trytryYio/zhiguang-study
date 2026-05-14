@@ -1,4 +1,9 @@
 declare namespace API {
+  type ActionRequest = {
+    entityType?: string;
+    entityId?: string;
+  };
+
   type AuthResponse = {
     user?: AuthUserResponse;
     token?: TokenResponse;
@@ -35,9 +40,27 @@ declare namespace API {
     message?: string;
   };
 
+  type BaseResponseBoolean = {
+    code?: number;
+    data?: boolean;
+    message?: string;
+  };
+
+  type BaseResponseCountsResponse = {
+    code?: number;
+    data?: CountsResponse;
+    message?: string;
+  };
+
   type BaseResponseFeedPageResponse = {
     code?: number;
     data?: FeedPageResponse;
+    message?: string;
+  };
+
+  type BaseResponseInteger = {
+    code?: number;
+    data?: number;
     message?: string;
   };
 
@@ -53,6 +76,36 @@ declare namespace API {
     message?: string;
   };
 
+  type BaseResponseListProfileResponse = {
+    code?: number;
+    data?: ProfileResponse[];
+    message?: string;
+  };
+
+  type BaseResponseListSearchResult = {
+    code?: number;
+    data?: SearchResult[];
+    message?: string;
+  };
+
+  type BaseResponseMapStringBoolean = {
+    code?: number;
+    data?: Record<string, any>;
+    message?: string;
+  };
+
+  type BaseResponseMapStringLong = {
+    code?: number;
+    data?: Record<string, any>;
+    message?: string;
+  };
+
+  type BaseResponseMapStringObject = {
+    code?: number;
+    data?: Record<string, any>;
+    message?: string;
+  };
+
   type BaseResponseProfileResponse = {
     code?: number;
     data?: ProfileResponse;
@@ -62,6 +115,12 @@ declare namespace API {
   type BaseResponseSendCodeResponse = {
     code?: number;
     data?: SendCodeResponse;
+    message?: string;
+  };
+
+  type BaseResponseStoragePresignResponse = {
+    code?: number;
+    data?: StoragePresignResponse;
     message?: string;
   };
 
@@ -79,6 +138,16 @@ declare namespace API {
 
   type confirmContentParams = {
     id: number;
+  };
+
+  type counterParams = {
+    userId: number;
+  };
+
+  type CountsResponse = {
+    entityType?: string;
+    entityId?: string;
+    counts?: Record<string, any>;
   };
 
   type deleteUsingDELETEParams = {
@@ -115,6 +184,30 @@ declare namespace API {
   type feedParams = {
     page?: number;
     size?: number;
+  };
+
+  type followersParams = {
+    userID: number;
+    limit?: number;
+    offset?: number;
+    cursor?: number;
+  };
+
+  type followingParams = {
+    userID: number;
+    limit?: number;
+    offset?: number;
+    cursor?: number;
+  };
+
+  type followParams = {
+    toUserId: number;
+  };
+
+  type getCountsParams = {
+    etype: string;
+    eid: string;
+    metrics?: string;
   };
 
   type KnowPostContentConfirmRequest = {
@@ -238,8 +331,26 @@ declare namespace API {
     agreeTerms?: boolean;
   };
 
+  type reindexParams = {
+    id: number;
+  };
+
   type resetPasswordParams = {
     request: PasswordResetRequest;
+  };
+
+  type searchParams = {
+    q: string;
+    page?: number;
+    size?: number;
+  };
+
+  type SearchResult = {
+    postId?: number;
+    title?: string;
+    snippet?: string;
+    likeCount?: number;
+    favCount?: number;
   };
 
   type SendCodeRequest = {
@@ -254,6 +365,36 @@ declare namespace API {
     expireSeconds?: number;
   };
 
+  type statusParams = {
+    toUserId: number;
+  };
+
+  type StoragePresignRequest = {
+    scene: string;
+    postId: string;
+    contentType: string;
+    ext?: string;
+  };
+
+  type StoragePresignResponse = {
+    objectKey?: string;
+    putUrl?: string;
+    headers?: Record<string, any>;
+    expire?: number;
+  };
+
+  type streamQAParams = {
+    id: number;
+    question: string;
+    topK?: number;
+    maxTokens?: number;
+  };
+
+  type suggestParams = {
+    q: string;
+    size?: number;
+  };
+
   type TokenRefreshRequest = {
     refreshToken: string;
   };
@@ -263,5 +404,9 @@ declare namespace API {
     accessTokenExpiresAt?: string;
     refreshToken?: string;
     refreshTokenExpiresAt?: string;
+  };
+
+  type unfollowParams = {
+    toUserId: number;
   };
 }

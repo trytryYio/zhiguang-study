@@ -43,7 +43,7 @@ export async function confirmContent(
   options?: { [key: string]: any }
 ) {
   const { id: param0, ...queryParams } = params;
-  return request<API.BaseResponse>(
+  return request<API.BaseResponseVoid>(
     `/api/v1/knowposts/${param0}/content/confirm`,
     {
       method: "POST",

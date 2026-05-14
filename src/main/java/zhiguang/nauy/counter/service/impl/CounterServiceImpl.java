@@ -285,7 +285,8 @@ public class CounterServiceImpl implements CounterService {
         // 1. 构建KEYS匹配模式，找所有分片（比如 bm:like:knowpost:123:*）
         String pattern = String.format("bm:%s:%s:%s:*", metric, entityType, entityId);
         // 是模糊匹配，根据你提供的通配符模式，找出 Redis 中所有符合要求的 Key。
-        Set<String> keys = redis.keys(pattern); // 返回所有存在的分片键
+        Set<String> keys = redis.keys(pattern); // 返回所有存在的分片键 //全表扫描 o(N)
+
         if (keys.isEmpty() || keys == null) {
             return 0L;
         }
@@ -407,9 +408,9 @@ public class CounterServiceImpl implements CounterService {
         });
         // 3. 解析每个实体的 SDS 数据
         int expectedLen = CounterSchema.SCHEMA_LEN*CounterSchema.BYTES_PER_METRIC;
-        Map<String, Long> counts = new LinkedHashMap<>();
 
         for (int i = 0; i < entityIds.size(); i++) {
+            Map<String, Long> counts = new LinkedHashMap<>(); // 放在循环体里面 每一个实体 对应一个map
 
             String entityId = entityIds.get(i);
             //获取实体的 SDS 数据
@@ -503,7 +504,7 @@ public class CounterServiceImpl implements CounterService {
         List<String> args = List.of(String.valueOf(bit), add ? "add" : "remove");
         //4.执行lua脚本 （原子操作）
         //不管在固定时间内该用户点了多少下 点赞都视为一次点赞信息
-        Long result = redis.execute(toggleScript, keys, args);
+        Long result = redis.execute(toggleScript, keys, args.toArray(new String[0]));
         //5.发布事件
         boolean ok = result == 1L;
         if (ok) {

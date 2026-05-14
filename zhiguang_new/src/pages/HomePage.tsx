@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import MainHeader from "../components/layout/MainHeader";
 import AuthStatus from "../features/auth/AuthStatus";
@@ -6,34 +6,60 @@ import { feed } from "../api/knowPostController";
 import styles from "../pages/HomePage.module.css";
 import CourseCard from "../components/cards/CourseCard";
 import LikeFavBar from "../components/common/LikeFavBar";
-import { useInfiniteScroll } from "../hooks/userInfiniteScroll";
-
-/**
- * 首页 — 第一阶段占位。
- *
- * <p>第二阶段接入 AuthContext 显示登录状态；
- * 第四阶段接入 Feed API 显示知文列表。</p>
- */
 
 const HomePage = () => {
-  // ★ useCallback 包裹，保证引用稳定，不会每次渲染创建新函数
-  const fetchFeed = useCallback(async (page: number, size: number) => {
-    console.log("请求分页:", { page, size });
-    const resp = await feed({ page, size });
-    console.log("返回数据:", resp);
-    // ★ null 安全：API 可能返回 null
-    return {
-      items: resp?.items ?? [],
-      hasMore: resp?.hasMore ?? false,
-    };
+  const [items, setItems] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const loadMore = async () => {
+    if (loadingRef.current || !hasMoreRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await feed({ page, size: 20 });
+      const newItems = resp?.items ?? [];
+      const more = resp?.hasMore ?? false;
+      setItems((prev) => [...prev, ...newItems]);
+      setHasMore(more);
+      hasMoreRef.current = more;
+      setPage((p) => p + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "加载失败");
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
+    }
+  };
+
+  // 首次加载
+  useEffect(() => {
+    loadMore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 使用 Hook 获取状态
-  // 在组件挂载时自动加载首页数据（知文列表）
-  const { items, loading, error, sentinelRef } = useInfiniteScroll(
-    fetchFeed,
-    20,
-  );
+  // IntersectionObserver 监听哨兵
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreRef.current && !loadingRef.current) {
+          loadMore();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [page, hasMore]);
 
   return (
     <AppLayout
@@ -48,8 +74,7 @@ const HomePage = () => {
       {error ? <div>{error}</div> : null}
       <div className={styles.masonry}>
         {items.map((item) => (
-          // 列表
-          <div key={item.id} className={styles.me}>
+          <div key={item.id} className={styles.masonryItem}>
             <CourseCard
               id={item.id}
               title={item.title}
@@ -86,11 +111,16 @@ const HomePage = () => {
             />
           </div>
         ))}
-        {/* 哨兵元素 - 用于检测滚动到底部 */}
+        {/* 哨兵元素 */}
         <div ref={sentinelRef} style={{ height: "20px" }} />
         {loading ? (
           <div className={styles.masonryItem}>
-            <div>加载中</div>
+            <div>加载中…</div>
+          </div>
+        ) : null}
+        {!loading && !hasMore && items.length > 0 ? (
+          <div className={styles.masonryItem} style={{ textAlign: "center", color: "var(--color-text-muted)" }}>
+            <div>到底啦，没有更多了</div>
           </div>
         ) : null}
         {!loading && items.length === 0 ? (
